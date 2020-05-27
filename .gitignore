@@ -1,0 +1,12 @@
+/Debug/*
+/Release/*
+/x64/*
+/*/x64/*
+/*/Debug/*
+/*/Release/*
+/.vs/*
+/images/*
+/CMakeBuild/*
+/build/*
+cmake-build*
+.idea/*
