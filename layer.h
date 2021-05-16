@@ -93,6 +93,7 @@ public:
 
     cv::FileStorage file(path, cv::FileStorage::WRITE);
     CHECK(file.isOpened()) << "path:" << path << " open fail";
+    cv::write(file, "layer_nb", (int)layer_nb());
     cv::write(file, "weights", layers);
     file.release();
   }
@@ -101,8 +102,13 @@ public:
     std::vector<cv::Mat> layers;
     cv::FileStorage file(path, cv::FileStorage::READ);
     CHECK(file.isOpened()) << "path:" << path << " open fail";
+    int layer_nb;
+    cv::read(file["layer_nb"], layer_nb, -1);
+    CHECK(layer_nb > 0) << layer_nb;
+    layers.reserve(layer_nb);
     cv::read(file["weights"], layers);
     file.release();
+
     _layers.clear();
     for (auto &l : layers) {
       _layers.emplace_back(std::make_shared<Layer>(l));
