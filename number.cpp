@@ -171,12 +171,13 @@ int main(int argc, char **argv) {
     AiLearning::NetWorks work = train();
     query(work);
   } else {
-    std::vector<int> nodes = {784, 50, 50, 10};
+    std::vector<int> nodes = {784, 80, 186, 10};
     AiLearning::MulNetWork netWork(nodes);
+//    netWork.read("/home/moriarty/Documents/4.yaml");
 
     const std::string root = "/home/moriarty/Datasets/python_learn_network/";
     const std::string data = "mnist_train.csv";
-    const int epoch = 500;
+    const int epoch = 5;
     float last_rate = 0;
     float learning_rate = 0.1;
     for (int e = 0; e < epoch; e++) {
@@ -194,18 +195,21 @@ int main(int argc, char **argv) {
       }
       file.close();
       float rate = query(netWork);
+#if 0
       if (rate - last_rate < 0) {
         learning_rate = 0.1;
+      } else if (rate - last_rate < 0.01) {
+        learning_rate = 10.0 * (rate - last_rate);
       } else if (rate - last_rate < 0.1) {
         learning_rate = rate - last_rate;
       } else {
         learning_rate = 0.1;
       }
+#endif
       LOG(ERROR) << "epoch[" << e << "] = " << rate << ", learning rate change to " << learning_rate;
       last_rate = rate;
+      netWork.write("/home/moriarty/Documents/weight_" + std::to_string(e) + ".yaml");
     }
-
-
 
   }
 
