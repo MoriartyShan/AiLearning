@@ -134,7 +134,7 @@ void query(AiLearning::Layer &layer) {
       auto real = get_res(target);
       auto detect = get_res(res);
 
-      LOG(ERROR) << "[real, possiblity, detect, possiblity], [" << real.first
+      LOG(INFO) << "[real, possiblity, detect, possiblity], [" << real.first
                  << "," << real.second << "," << detect.first << ","
                  << detect.second << "],"
                  << (detect.first == real.first ? "right" : "wrong");
@@ -170,13 +170,14 @@ int main(int argc, char **argv) {
     AiLearning::NetWorks work = train();
     query(work);
   } else {
-    AiLearning::Layer input_layer(784), hidden_layer(100);
+    AiLearning::Layer input_layer(784), hidden_layer(50), hidden_layer2(50);
     input_layer.init(nullptr, &hidden_layer);
-    hidden_layer.init(&input_layer, nullptr, 10);
+    hidden_layer.init(&input_layer, &hidden_layer2);
+    hidden_layer2.init(&hidden_layer, nullptr, 10);
 
     const std::string root = "/home/moriarty/Datasets/python_learn_network/";
     const std::string data = "mnist_train.csv";
-    const int epoch = 5;
+    const int epoch = 500;
     for (int e = 0; e < epoch; e++) {
       std::ifstream file(root + "/" + data);
       CHECK(file.is_open()) << root + "/" + data << " open fail";
@@ -190,9 +191,11 @@ int main(int argc, char **argv) {
         }
       }
       file.close();
+      query(input_layer);
+      LOG(ERROR) << "epoch[" << e << "]";
     }
 
-    query(input_layer);
+
 
   }
 

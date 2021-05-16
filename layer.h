@@ -29,8 +29,8 @@ public:
   int id() const {return _id;}
   void init(Layer *prev, Layer *next, const int next_node = 0) {
     _prev = prev;
-    if (next != nullptr) {
-      _next = next;
+    _next = next;
+    if (_next != nullptr) {
       _Who.create(_next->node(), node(), CV_32FC1);
     } else {
       _Who.create(next_node, node(), CV_32FC1);
