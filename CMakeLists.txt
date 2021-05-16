@@ -8,12 +8,19 @@ find_package(gflags REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-add_executable(${PROJECT_NAME}
-  basic.cpp
-)
+set(target_name "basic")
+add_library(${target_name} basic.cpp common.cpp)
 
-target_link_libraries(${PROJECT_NAME}
-  gflags
-  glog::glog
-  ${OpenCV_LIBS}
+target_link_libraries(${target_name}
+        gflags
+        glog::glog
+        ${OpenCV_LIBS}
+        )
+
+set(target_name "number")
+add_executable(${target_name}
+   number.cpp )
+
+target_link_libraries(${target_name}
+        basic
 )
