@@ -115,7 +115,7 @@ void query(const AiLearning::NetWorks &work) {
 }
 
 
-void query(AiLearning::Layer &layer) {
+float query(AiLearning::MulNetWork &netWork) {
   const std::string root = "/home/moriarty/Datasets/python_learn_network/";
   const std::string data = "mnist_test.csv";
 
@@ -130,7 +130,7 @@ void query(AiLearning::Layer &layer) {
     std::getline(file, line);
     if (!line.empty()) {
       create_input(line, input, target);
-      const cv::Mat res = layer.query(input)->processing();
+      const cv::Mat res = netWork.query(input);
       auto real = get_res(target);
       auto detect = get_res(res);
 
@@ -151,8 +151,9 @@ void query(AiLearning::Layer &layer) {
   }
   file.close();
 
-  LOG(ERROR) << "[right, wrong], [" << right << "," << wrong << "]="
+  LOG(INFO) << "[right, wrong], [" << right << "," << wrong << "]="
              << right / (float)(right + wrong);
+  return right / (float)(right + wrong);
 }
 
 
@@ -170,15 +171,16 @@ int main(int argc, char **argv) {
     AiLearning::NetWorks work = train();
     query(work);
   } else {
-    AiLearning::Layer input_layer(784), hidden_layer(50), hidden_layer2(50);
-    input_layer.init(nullptr, &hidden_layer);
-    hidden_layer.init(&input_layer, &hidden_layer2);
-    hidden_layer2.init(&hidden_layer, nullptr, 10);
+    std::vector<int> nodes = {784, 50, 50, 10};
+    AiLearning::MulNetWork netWork(nodes);
 
     const std::string root = "/home/moriarty/Datasets/python_learn_network/";
     const std::string data = "mnist_train.csv";
     const int epoch = 500;
+    float last_rate = 0;
+    float learning_rate = 0.1;
     for (int e = 0; e < epoch; e++) {
+
       std::ifstream file(root + "/" + data);
       CHECK(file.is_open()) << root + "/" + data << " open fail";
       std::string line;
@@ -187,18 +189,25 @@ int main(int argc, char **argv) {
         std::getline(file, line);
         if (!line.empty()) {
           create_input(line, input, target);
-          input_layer.train(input, target);
+          netWork.train(input, target);
         }
       }
       file.close();
-      query(input_layer);
-      LOG(ERROR) << "epoch[" << e << "]";
+      float rate = query(netWork);
+      if (rate - last_rate < 0) {
+        learning_rate = 0.1;
+      } else if (rate - last_rate < 0.1) {
+        learning_rate = rate - last_rate;
+      } else {
+        learning_rate = 0.1;
+      }
+      LOG(ERROR) << "epoch[" << e << "] = " << rate << ", learning rate change to " << learning_rate;
+      last_rate = rate;
     }
 
 
 
   }
 
-  system("pause");
-    return 0;
+  return 0;
 }
