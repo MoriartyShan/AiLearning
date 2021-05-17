@@ -15,15 +15,19 @@ Layer::Layer(const int in, const int out) :
 const cv::Mat& Layer::query(const cv::Mat &in) {
   _in = &in;
   _processing = Who() * in;
-  Sigmoid(_processing);
+  ELU(_processing);
   return processing();
 }
 
 const cv::Mat Layer::back_propogate(
     const float learning_rate, const cv::Mat &error) {
   cv::Mat prev_error = _Who.t() * error;
+
+  cv::Mat derivatives = _processing.clone();
+  derivativesELU(derivatives);
+
   _Who += learning_rate *
-          ((error.mul(_processing)).mul(1 - _processing)) * (*_in).t();
+          ((error.mul(derivatives))) * (*_in).t();
   return prev_error;
 }
 
@@ -39,6 +43,7 @@ MulNetWork::MulNetWork(const std::vector<int> &nodes) {
 void MulNetWork::train(const cv::Mat &in, const cv::Mat &target, const float learning_rate) {
   cv::Mat cur_error = target - query(in);
   for (auto layer = _layers.rbegin(); layer != _layers.rend(); layer++) {
+    LOG(INFO) << "current error = " << cur_error.t();
     cur_error = (*layer)->back_propogate(learning_rate, cur_error);
   }
 

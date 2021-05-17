@@ -55,6 +55,8 @@ public:
 
   void read(const std::string &path);
 
+  const std::shared_ptr<Layer> layer(const int i) const {return _layers[i];}
+
 };
 
 }
