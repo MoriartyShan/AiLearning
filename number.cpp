@@ -5,7 +5,10 @@
 #include "layer.h"
 #include <glog/logging.h>
 #include <gflags/gflags.h>
-
+DEFINE_string(data, "", "path to tran and test data");
+DEFINE_string(train, "", "train data name");
+DEFINE_string(test, "", "test data name");
+DEFINE_string(weight, "./", "write weight files to");
 
 bool create_input(const std::string& line, cv::Mat& res, cv::Mat &target) {
   std::stringstream ss(line);
@@ -33,13 +36,13 @@ bool create_input(const std::string& line, cv::Mat& res, cv::Mat &target) {
 }
 
 AiLearning::NetWorks train(const int epoch = 5) {
-  const std::string root = "/home/moriarty/Datasets/python_learn_network/";
-  const std::string data = "mnist_train.csv";
+  const std::string root = FLAGS_data + "/";
+  const std::string data = FLAGS_train;
   AiLearning::NetWorks work(784, 100, 10);
 
   for (int e = 0; e < epoch; e++) {
-    std::ifstream file(root + "/" + data);
-    CHECK(file.is_open()) << root + "/" + data << " open fail";
+    std::ifstream file(root + data);
+    CHECK(file.is_open()) << root + data << " open fail";
     std::string line;
     cv::Mat input, target;
     while (!file.eof()) {
@@ -75,12 +78,12 @@ std::pair<int, float> get_res(const cv::Mat& res) {
   return std::pair<int, float>(max_index, max/all);
 }
 
-void query(const AiLearning::NetWorks &work) {
-  const std::string root = "/home/moriarty/Datasets/python_learn_network/";
-  const std::string data = "mnist_test.csv";
+float query(const AiLearning::NetWorks &work) {
+  const std::string root = FLAGS_data + "/";
+  const std::string data = FLAGS_test;
 
-  std::ifstream file(root + "/" + data);
-  CHECK(file.is_open()) << root + "/" + data << " open fail";
+  std::ifstream file(root + data);
+  CHECK(file.is_open()) << root + data << " open fail";
   std::string line;
   cv::Mat input, target;
 
@@ -110,17 +113,18 @@ void query(const AiLearning::NetWorks &work) {
   }
   file.close();
 
-  LOG(ERROR) << "[right, wrong], [" << right << "," << wrong << "]="
+  LOG(INFO) << "[right, wrong], [" << right << "," << wrong << "]="
              << right / (float)(right + wrong);
+  return right / (float)(right + wrong);
 }
 
 
 float query(AiLearning::MulNetWork &netWork) {
-  const std::string root = "/home/moriarty/Datasets/python_learn_network/";
-  const std::string data = "mnist_test.csv";
+  const std::string root = FLAGS_data + "/";
+  const std::string data = FLAGS_test;
 
-  std::ifstream file(root + "/" + data);
-  CHECK(file.is_open()) << root + "/" + data << " open fail";
+  std::ifstream file(root + data);
+  CHECK(file.is_open()) << root + data << " open fail";
   std::string line;
   cv::Mat input, target;
 
@@ -171,19 +175,17 @@ int main(int argc, char **argv) {
     AiLearning::NetWorks work = train();
     query(work);
   } else {
-    std::vector<int> nodes = {784, 80, 186, 10};
+    std::vector<int> nodes = {784, 100, 50, 10};
     AiLearning::MulNetWork netWork(nodes);
 //    netWork.read("/home/moriarty/Documents/4.yaml");
 
-    const std::string root = "/home/moriarty/Datasets/python_learn_network/";
-    const std::string data = "mnist_train.csv";
-    const int epoch = 5;
-    float last_rate = 0;
+    const std::string root = FLAGS_data + "/";
+    const std::string data = FLAGS_train;
+    const int epoch = 5000;
     float learning_rate = 0.1;
     for (int e = 0; e < epoch; e++) {
-
-      std::ifstream file(root + "/" + data);
-      CHECK(file.is_open()) << root + "/" + data << " open fail";
+      std::ifstream file(root + data);
+      CHECK(file.is_open()) << root + data << " open fail";
       std::string line;
       cv::Mat input, target;
       while (!file.eof()) {
@@ -207,8 +209,7 @@ int main(int argc, char **argv) {
       }
 #endif
       LOG(ERROR) << "epoch[" << e << "] = " << rate << ", learning rate change to " << learning_rate;
-      last_rate = rate;
-      netWork.write("/home/moriarty/Documents/weight_" + std::to_string(e) + ".yaml");
+      netWork.write(FLAGS_weight + "/weight_" + std::to_string(e) + ".yaml");
     }
 
   }
