@@ -178,10 +178,10 @@ int main(int argc, char **argv) {
     std::vector<int> nodes = {784, 100, 50, 10};
     AiLearning::MulNetWork netWork(nodes);
 //    netWork.read("/home/moriarty/Documents/4.yaml");
-
+    netWork.write(FLAGS_weight + "/init.yaml");
     const std::string root = FLAGS_data + "/";
     const std::string data = FLAGS_train;
-    const int epoch = 5000;
+    const int epoch = 5;
     float learning_rate = 0.1;
     for (int e = 0; e < epoch; e++) {
       std::ifstream file(root + data);
