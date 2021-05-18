@@ -6,18 +6,19 @@
 
 #define RAND8BIT() (((uint32_t)rand()) & 0xff)
 #define RAND32BIT() (RAND8BIT() | (RAND8BIT() << 8) | (RAND8BIT() << 16) | (RAND8BIT() << 24) )
-#define RANDOM(a) (((RAND32BIT() / (double)0xffffffff) - 0.5) * 2 * (a))
+#define RANDOM(from, to) (((RAND32BIT() / (double)0xffffffff)) * (to - from) + (from))
 
 
 namespace AiLearning {
 void Random(cv::Mat &matrix) {
-  CHECK(matrix.type() == CV_32FC1);
+  CHECK(matrix.type() == CV_TYPE);
   float max = -1;
   for (int i = 0; i < matrix.rows; i++) {
     for (int j = 0; j < matrix.cols; j++) {
-      matrix.at<float>(i, j) = RANDOM(1);
-      if (matrix.at<float>(i, j) > max) {
-        max = matrix.at<float>(i, j);
+      matrix.at<scalar>(i, j) = RANDOM(-0.999, 0.999);
+//      LOG(ERROR) << matrix.at<float>(i, j);
+      if (matrix.at<scalar>(i, j) > max) {
+        max = matrix.at<scalar>(i, j);
       }
     }
   }
@@ -31,6 +32,7 @@ void Sigmoid(T *data, const int size) {
 }
 
 void Sigmoid(cv::Mat &matrix) {
+  CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     Sigmoid<float>((float *) matrix.data, matrix.cols * matrix.rows);
   } else if (matrix.type() == CV_64FC1) {
@@ -44,12 +46,15 @@ template<typename T>
 void ELU(T *data, const int size) {
   for (int i = 0; i < size; i++) {
     if (data[i] <= 0) {
+      T d = data[i];
       data[i] = std::exp(data[i]) - 1;
+      //LOG(ERROR) << "d[" << i << "]" << d << "," << data[i];
     }
   }
 }
 
 void ELU(cv::Mat &matrix) {
+  CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     ELU<float>((float *) matrix.data, matrix.cols * matrix.rows);
   } else if (matrix.type() == CV_64FC1) {
@@ -67,11 +72,13 @@ void derivativesELU(T *data, const int size) {
       data[i] = 1;
     } else {
       data[i] = data[i] + 1;
+//      CHECK(data[i] > 0) << data[i] << "," << i;
     }
   }
 }
 
 void derivativesELU(cv::Mat &matrix) {
+  CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     derivativesELU<float>((float *) matrix.data, matrix.cols * matrix.rows);
   } else if (matrix.type() == CV_64FC1) {

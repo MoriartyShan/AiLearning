@@ -2,6 +2,8 @@
 // Created by moriarty on 5/17/21.
 //
 #include "layer.h"
+#include "common.h"
+
 int main() {
   AiLearning::MulNetWork netWork;
   std::vector<std::array<cv::Mat, 3>> weights;
@@ -21,7 +23,7 @@ int main() {
   READ("init.yaml");
 
   for (int i = 0; i < 266; i++) {
-    READ("weight_" + std::to_string(i));
+    READ("weight_" + std::to_string(i) + ".yaml");
   }
 
   std::vector<double> lines = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
@@ -32,14 +34,13 @@ int main() {
     file.open("layer_" + std::to_string(i) + ".csv");
 
     for (int k = 0; k < lines.size(); k++) {
-      int lid =
+      int lid = lines[k] * weights[0][i].rows * weights[0][i].cols;
       for (int j = 0; j < weights.size(); j++) {
-        weights[j][i].at<float>()
+        file << weights[j][i].at<AiLearning::scalar>(lid) << ",";
       }
+      file << std::endl;
     }
-
-
-
+    file.close();
   }
 
 

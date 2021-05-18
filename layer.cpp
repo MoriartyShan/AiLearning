@@ -5,45 +5,66 @@
 
 
 namespace AiLearning{
-Layer::Layer(const int in, const int out) :
+const std::string SigmoidNeuron::_type = "Sigmoid";
+const std::string ELUNeuron::_type = "ELU";
+
+Neuron::Neuron(const int in, const int out) :
     _id(global_index()) {
-  _Who.create(out, in, CV_32FC1);
+  _Who.create(out, in, CV_TYPE);
   Random(_Who);
 }
 
 
-const cv::Mat& Layer::query(const cv::Mat &in) {
+const cv::Mat& ELUNeuron::query(const cv::Mat &in) {
   _in = &in;
   _processing = Who() * in;
   ELU(_processing);
   return processing();
 }
 
-const cv::Mat Layer::back_propogate(
+const cv::Mat ELUNeuron::back_propogate(
     const float learning_rate, const cv::Mat &error) {
   cv::Mat prev_error = _Who.t() * error;
 
   cv::Mat derivatives = _processing.clone();
   derivativesELU(derivatives);
-
-  _Who += learning_rate *
-          ((error.mul(derivatives))) * (*_in).t();
+  cv::Mat change = learning_rate *
+                   ((error.mul(derivatives))) * (*_in).t();
+  _Who += change;
   return prev_error;
 }
+
+
+const cv::Mat& SigmoidNeuron::query(const cv::Mat &in) {
+  _in = &in;
+  _processing = Who() * in;
+  Sigmoid(_processing);
+  return processing();
+}
+
+const cv::Mat SigmoidNeuron::back_propogate(
+  const float learning_rate, const cv::Mat &error) {
+  cv::Mat prev_error = _Who.t() * error;
+  _Who += learning_rate *
+          ((error.mul(_processing)).mul(1 - _processing)) * (*_in).t();
+  return prev_error;
+}
+
 
 MulNetWork::MulNetWork(const std::vector<int> &nodes) {
   const size_t size = nodes.size();
   _layers.reserve(size - 1);
 
   for (size_t i = 1; i < size; i++) {
-    _layers.emplace_back(std::make_shared<Layer>(nodes[i - 1], nodes[i]));
+    std::shared_ptr<SigmoidNeuron> ptr =
+        std::make_shared<SigmoidNeuron>(nodes[i - 1], nodes[i]);
+    _layers.emplace_back(static_cast<std::shared_ptr<Neuron>>(ptr));
   }
 }
 
 void MulNetWork::train(const cv::Mat &in, const cv::Mat &target, const float learning_rate) {
   cv::Mat cur_error = target - query(in);
   for (auto layer = _layers.rbegin(); layer != _layers.rend(); layer++) {
-    LOG(INFO) << "current error = " << cur_error.t();
     cur_error = (*layer)->back_propogate(learning_rate, cur_error);
   }
 
@@ -85,7 +106,8 @@ void MulNetWork::read(const std::string &path) {
 
   _layers.clear();
   for (auto &l : layers) {
-    _layers.emplace_back(std::make_shared<Layer>(l));
+    auto ptr = std::make_shared<SigmoidNeuron>(l);
+    _layers.emplace_back(static_cast<std::shared_ptr<Neuron>>(ptr));
   }
   return;
 }

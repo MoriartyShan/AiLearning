@@ -24,3 +24,12 @@ add_executable(${target_name}
 target_link_libraries(${target_name}
         basic
 )
+
+
+set(target_name "analyse")
+add_executable(${target_name}
+        analyse.cpp )
+
+target_link_libraries(${target_name}
+        basic
+        )

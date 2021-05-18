@@ -7,8 +7,13 @@
 #include <opencv2/opencv.hpp>
 
 namespace AiLearning {
-
-
+#if 0
+using scalar = float;
+#define CV_TYPE CV_32FC1
+#else
+using scalar = double;
+#define CV_TYPE CV_64FC1
+#endif
 void Sigmoid(cv::Mat &matrix);
 
 

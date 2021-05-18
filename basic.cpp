@@ -7,8 +7,8 @@
 namespace AiLearning {
 NetWorks::NetWorks(const int inode, const int hnode, const int onode) :
     _inode(inode), _hnode(hnode), _onode(onode),
-    _Wih(hnode, inode, CV_32FC1),
-    _Who(onode, hnode, CV_32FC1) {
+    _Wih(hnode, inode, CV_TYPE),
+    _Who(onode, hnode, CV_TYPE) {
   Random(_Wih);
   Random(_Who);
   write_work("/home/moriarty/Datasets/init.yaml");

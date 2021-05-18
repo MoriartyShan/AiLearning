@@ -3,6 +3,7 @@
 //
 #include "basic.h"
 #include "layer.h"
+#include "common.h"
 #include <glog/logging.h>
 #include <gflags/gflags.h>
 DEFINE_string(data, "", "path to tran and test data");
@@ -10,19 +11,21 @@ DEFINE_string(train, "", "train data name");
 DEFINE_string(test, "", "test data name");
 DEFINE_string(weight, "./", "write weight files to");
 
+using scalar = AiLearning::scalar;
+
 bool create_input(const std::string& line, cv::Mat& res, cv::Mat &target) {
   std::stringstream ss(line);
-  res = cv::Mat(784, 1, CV_32FC1);
-  target = cv::Mat::zeros(10, 1, CV_32FC1);
+  res = cv::Mat(784, 1, CV_TYPE);
+  target = cv::Mat::zeros(10, 1, CV_TYPE);
   int cur;
   char comma;
 #define INSTREAM ss >> cur; ss >> comma;
-#define GIVE_VALUE(a) res.at<float>(a, 0) = (cur / 255.0) * 0.99 + 0.01;
+#define GIVE_VALUE(a) res.at<scalar>(a, 0) = (cur / 255.0) * 0.99 + 0.01;
   INSTREAM;
   for (int i = 0; i < 10; i++) {
-    target.at<float>(i, 0) = 0.0001;
+    target.at<scalar>(i, 0) = 0.0001;
   }
-  target.at<float>(cur, 0) = 0.9999;
+  target.at<scalar>(cur, 0) = 0.9999;
 
   for (int i = 0; i < 783; i++) {
     INSTREAM;
@@ -59,26 +62,26 @@ AiLearning::NetWorks train(const int epoch = 5) {
   return work;
 }
 
-std::pair<int, float> get_res(const cv::Mat& res) {
+std::pair<int, scalar> get_res(const cv::Mat& res) {
   const int row = 10;
   CHECK(res.cols == 1 && res.rows == row) << res;
-  CHECK(res.type() == CV_32FC1);
+  CHECK(res.type() == CV_TYPE);
   double all = 0;
-  double max = res.at<float>(0, 0);
+  double max = res.at<scalar>(0, 0);
   int max_index = 0;
 
   for (int i = 0; i < row; i++) {
-    const float cur = res.at<float>(i, 0);
+    const scalar cur = res.at<scalar>(i, 0);
     all += cur;
     if (cur > max) {
       max = cur;
       max_index = i;
     }
   }
-  return std::pair<int, float>(max_index, max/all);
+  return std::pair<int, scalar>(max_index, max/all);
 }
 
-float query(const AiLearning::NetWorks &work) {
+scalar query(const AiLearning::NetWorks &work) {
   const std::string root = FLAGS_data + "/";
   const std::string data = FLAGS_test;
 
@@ -114,12 +117,12 @@ float query(const AiLearning::NetWorks &work) {
   file.close();
 
   LOG(INFO) << "[right, wrong], [" << right << "," << wrong << "]="
-             << right / (float)(right + wrong);
-  return right / (float)(right + wrong);
+             << right / (scalar)(right + wrong);
+  return right / (scalar)(right + wrong);
 }
 
 
-float query(AiLearning::MulNetWork &netWork) {
+scalar query(AiLearning::MulNetWork &netWork) {
   const std::string root = FLAGS_data + "/";
   const std::string data = FLAGS_test;
 
@@ -156,8 +159,8 @@ float query(AiLearning::MulNetWork &netWork) {
   file.close();
 
   LOG(INFO) << "[right, wrong], [" << right << "," << wrong << "]="
-             << right / (float)(right + wrong);
-  return right / (float)(right + wrong);
+             << right / (scalar)(right + wrong);
+  return right / (scalar)(right + wrong);
 }
 
 
@@ -175,14 +178,14 @@ int main(int argc, char **argv) {
     AiLearning::NetWorks work = train();
     query(work);
   } else {
-    std::vector<int> nodes = {784, 100, 10};
+    std::vector<int> nodes = {784, 40, 20, 10};
     AiLearning::MulNetWork netWork(nodes);
 //    netWork.read("/home/moriarty/Documents/4.yaml");
     netWork.write(FLAGS_weight + "/init.yaml");
     const std::string root = FLAGS_data + "/";
     const std::string data = FLAGS_train;
     const int epoch = 5;
-    float learning_rate = 0.1;
+    scalar learning_rate = 0.1;
     for (int e = 0; e < epoch; e++) {
       std::ifstream file(root + data);
       CHECK(file.is_open()) << root + data << " open fail";
@@ -196,7 +199,7 @@ int main(int argc, char **argv) {
         }
       }
       file.close();
-      float rate = query(netWork);
+      scalar rate = query(netWork);
 #if 0
       if (rate - last_rate < 0) {
         learning_rate = 0.1;
