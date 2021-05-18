@@ -63,7 +63,10 @@ MulNetWork::MulNetWork(const std::vector<int> &nodes) {
 }
 
 void MulNetWork::train(const cv::Mat &in, const cv::Mat &target, const float learning_rate) {
-  cv::Mat cur_error = target - query(in);
+  cv::Mat cur_error = (target - query(in));
+  derivativesSoftmax(_softmax);
+  cur_error = cur_error.mul(_softmax);
+
   for (auto layer = _layers.rbegin(); layer != _layers.rend(); layer++) {
     cur_error = (*layer)->back_propogate(learning_rate, cur_error);
   }
@@ -76,7 +79,11 @@ const cv::Mat& MulNetWork::query(const cv::Mat &in) {
   for (size_t i = 0; i < layer_nb(); i++) {
     in_ptr = &(_layers[i]->query(*in_ptr));
   }
-  return *in_ptr;
+
+  _softmax = *in_ptr;
+  _sum = Softmax(_softmax);
+
+  return _softmax;
 }
 
 void MulNetWork::write(const std::string &path) const {

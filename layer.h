@@ -67,6 +67,9 @@ public:
 class MulNetWork {
 private:
   std::vector<std::shared_ptr<Neuron>> _layers;
+
+  cv::Mat _softmax, _exp;
+  scalar _sum;
 public:
   MulNetWork() {}
   MulNetWork(const std::vector<int> &nodes);

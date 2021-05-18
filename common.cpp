@@ -87,4 +87,20 @@ void derivativesELU(cv::Mat &matrix) {
     LOG(FATAL) << "Not implemented " << matrix.type();
   }
 }
+
+
+void derivativesSoftmax(cv::Mat &matrix) {
+  matrix = matrix - matrix.mul(matrix);
+  return;
+}
+
+scalar Softmax(cv::Mat &matrix) {
+  cv::Mat exp;
+  cv::exp(matrix, exp);
+  CHECK(exp.channels() == 1) << exp.channels();
+  scalar sum = cv::sum(exp)(0);
+  matrix = exp / sum;
+  return sum;
+}
+
 }//namespace AiLearning
