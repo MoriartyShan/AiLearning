@@ -21,7 +21,7 @@ void ELU(cv::Mat &matrix);
 void derivativesELU(cv::Mat &matrix);
 
 void Random(cv::Mat &matrix);
-scalar Softmax(cv::Mat &matrix);
+void Softmax(cv::Mat &matrix);
 void derivativesSoftmax(cv::Mat &matrix);
 }//namespace AiLearning
 #endif //NEURALNETWORK_COMMON_H

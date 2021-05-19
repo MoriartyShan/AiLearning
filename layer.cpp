@@ -47,21 +47,20 @@ const cv::Mat Neuron::back_propogate(
 MulNetWork::MulNetWork(const std::vector<int> &nodes) {
   const size_t size = nodes.size();
   _layers.reserve(size - 1);
-  const std::string active = "Sigmoid";
-  for (size_t i = 1; i < size; i++) {
+  const std::string active = "Softmax";
+  for (size_t i = 1; i < size - 1; i++) {
     std::shared_ptr<Neuron> ptr =
         std::make_shared<Neuron>(nodes[i - 1], nodes[i], active);
     _layers.emplace_back(static_cast<std::shared_ptr<Neuron>>(ptr));
   }
+  std::shared_ptr<Neuron> ptr =
+      std::make_shared<Neuron>(nodes[size - 2], nodes[size - 1], "Softmax");
+  _layers.emplace_back(static_cast<std::shared_ptr<Neuron>>(ptr));
 }
 
 void MulNetWork::train(const cv::Mat &in, const cv::Mat &target, const float learning_rate) {
   cv::Mat cur_error = (target - query(in));
 //  LOG(ERROR) << "loss = " << cv::norm(cur_error) << "," << cur_error.t();
-#if 0
-  derivativesSoftmax(_softmax);
-  cur_error = cur_error.mul(_softmax);
-#endif
   for (auto layer = _layers.rbegin(); layer != _layers.rend(); layer++) {
     cur_error = (*layer)->back_propogate(learning_rate, cur_error);
   }

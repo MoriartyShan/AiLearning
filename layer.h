@@ -34,6 +34,9 @@ protected:
     } else if (_active == "ELU") {
       _active_func = ELU;
       _derivatives_func = derivativesELU;
+    } else if (_active == "Softmax") {
+      _active_func = Softmax;
+      _derivatives_func = derivativesSoftmax;
     } else {
       LOG(FATAL) << "not implemented:" << _active;
     }

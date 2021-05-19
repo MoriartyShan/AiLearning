@@ -93,13 +93,13 @@ void derivativesSoftmax(cv::Mat &matrix) {
   return;
 }
 
-scalar Softmax(cv::Mat &matrix) {
+void Softmax(cv::Mat &matrix) {
   cv::Mat exp;
   cv::exp(matrix, exp);
   CHECK(exp.channels() == 1) << exp.channels();
   scalar sum = cv::sum(exp)(0);
   matrix = exp / sum;
-  return sum;
+  return;
 }
 
 }//namespace AiLearning
