@@ -15,6 +15,7 @@ using scalar = double;
 #define CV_TYPE CV_64FC1
 #endif
 void Sigmoid(cv::Mat &matrix);
+void derivativesSigmoid(cv::Mat &matrix);
 
 void ELU(cv::Mat &matrix);
 void derivativesELU(cv::Mat &matrix);

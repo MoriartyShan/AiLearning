@@ -32,14 +32,13 @@ void Sigmoid(T *data, const int size) {
 }
 
 void Sigmoid(cv::Mat &matrix) {
-  CHECK(matrix.isContinuous());
-  if (matrix.type() == CV_32FC1) {
-    Sigmoid<float>((float *) matrix.data, matrix.cols * matrix.rows);
-  } else if (matrix.type() == CV_64FC1) {
-    Sigmoid<double>((double *) matrix.data, matrix.cols * matrix.rows);
-  } else {
-    LOG(FATAL) << "Not implemented " << matrix.type();
-  }
+  cv::Mat tmp = -matrix;
+  cv::exp(tmp, matrix);
+  matrix = 1 / (matrix + 1);
+}
+
+void derivativesSigmoid(cv::Mat &matrix) {
+  matrix = matrix.mul(1 - matrix);
 }
 
 template<typename T>

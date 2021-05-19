@@ -144,7 +144,7 @@ scalar query(AiLearning::MulNetWork &netWork) {
       LOG(INFO) << "[real, possiblity, detect, possiblity], [" << real.first
                  << "," << real.second << "," << detect.first << ","
                  << detect.second << "],"
-                 << (detect.first == real.first ? "right" : "wrong");
+                 << (detect.first == real.first ? "right" : "wrong") << "," << cv::norm(res - target);
 
       if (real.first == detect.first) {
         right++;
@@ -172,7 +172,6 @@ int main(int argc, char **argv) {
   google::InitGoogleLogging(argv[0]); // option --[also]logtostderr
   //        --stderrthreshold=0
 
-
   srand(time(0));
   if (false) {
     AiLearning::NetWorks work = train();
@@ -184,7 +183,7 @@ int main(int argc, char **argv) {
     netWork.write(FLAGS_weight + "/init.yaml");
     const std::string root = FLAGS_data + "/";
     const std::string data = FLAGS_train;
-    const int epoch = 5;
+    const int epoch = 100;
     scalar learning_rate = 0.1;
     for (int e = 0; e < epoch; e++) {
       std::ifstream file(root + data);

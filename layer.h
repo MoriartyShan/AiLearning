@@ -9,8 +9,14 @@
 #include <memory>
 
 namespace AiLearning{
+using ActiveFuction = void (*) (cv::Mat &);
+using DerivativesFuction = void (*) (cv::Mat &);
+
 class Neuron{
 protected:
+  const std::string _active;
+  ActiveFuction _active_func;
+  DerivativesFuction _derivatives_func;
   cv::Mat _Who;
   cv::Mat _processing;
   const cv::Mat *_in;
@@ -20,9 +26,25 @@ protected:
     static int idx = 0;
     return idx++;
   }
+
+  void set_active() {
+    if (_active == "Sigmoid") {
+      _active_func = Sigmoid;
+      _derivatives_func = derivativesSigmoid;
+    } else if (_active == "ELU") {
+      _active_func = ELU;
+      _derivatives_func = derivativesELU;
+    } {
+      LOG(FATAL) << "not implemented:" << _active;
+    }
+  }
+
 public:
-  Neuron(const cv::Mat &Who): _Who(Who.clone()), _id(global_index()) {}
-  Neuron(const int in, const int out);
+  Neuron(const cv::Mat &Who, const std::string &active):
+      _Who(Who.clone()), _id(global_index()), _active(active) {
+    set_active();
+  }
+  Neuron(const int in, const int out, const std::string &active);
 
   const cv::Mat& Who() const {return _Who;}
   const cv::Mat& processing() const {return _processing;}
@@ -30,38 +52,13 @@ public:
   const int output_size() const {return _Who.rows;}
   int id() const {return _id;}
 
-  virtual const cv::Mat& query(const cv::Mat &in) = 0;
+  virtual const cv::Mat& query(const cv::Mat &in);
   virtual const cv::Mat back_propogate(
-      const float learning_rate, const cv::Mat &error) = 0;
-  virtual const std::string& type() const = 0;
+      const float learning_rate, const cv::Mat &error);
+  virtual const std::string& type() const {
+    return _active;
+  };
 
-};
-
-class SigmoidNeuron : public Neuron{
-private:
-  static const std::string _type;
-public:
-  SigmoidNeuron(const cv::Mat &Who): Neuron(Who) {}
-  SigmoidNeuron(const int in, const int out) : Neuron(in, out) {};
-
-  const cv::Mat& query(const cv::Mat &in) override;
-  const cv::Mat back_propogate(
-    const float learning_rate, const cv::Mat &error) override;
-  const std::string& type() const override {return _type;}
-
-};
-
-class ELUNeuron : public Neuron{
-private:
-  const static std::string _type;
-public:
-  ELUNeuron(const cv::Mat &Who): Neuron(Who) {}
-  ELUNeuron(const int in, const int out) : Neuron(in, out) {};
-
-  const cv::Mat& query(const cv::Mat &in) override;
-  const cv::Mat back_propogate(
-    const float learning_rate, const cv::Mat &error) override;
-  const std::string& type() const override {return _type;}
 };
 
 class MulNetWork {
