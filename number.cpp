@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
     AiLearning::NetWorks work = train();
     query(work);
   } else {
-    std::vector<int> nodes = {784, 100, 10};
+    std::vector<int> nodes = {784, 40, 20, 10};
     AiLearning::MulNetWork netWork(nodes);
 //    netWork.read("/home/moriarty/Documents/4.yaml");
     netWork.write(FLAGS_weight + "/init.yaml");

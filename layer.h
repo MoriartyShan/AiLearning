@@ -77,7 +77,7 @@ public:
   int input_size() const {return _layers.front()->input_size();}
   int output_size() const {return _layers.back()->output_size();}
 
-  void train(
+  scalar train(
       const cv::Mat &in, const cv::Mat &target, const float learning_rate = 0.1);
 
   const cv::Mat& query(const cv::Mat &in);
