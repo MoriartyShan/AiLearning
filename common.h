@@ -7,7 +7,7 @@
 #include <opencv2/opencv.hpp>
 
 namespace AiLearning {
-#if 0
+#if 1
 using scalar = float;
 #define CV_TYPE CV_32FC1
 #else

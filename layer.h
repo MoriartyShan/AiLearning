@@ -34,7 +34,7 @@ protected:
     } else if (_active == "ELU") {
       _active_func = ELU;
       _derivatives_func = derivativesELU;
-    } {
+    } else {
       LOG(FATAL) << "not implemented:" << _active;
     }
   }
