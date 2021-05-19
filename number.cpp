@@ -185,6 +185,8 @@ int main(int argc, char **argv) {
     const std::string data = FLAGS_train;
     const int epoch = 100;
     scalar learning_rate = 0.1;
+    int best_epoch = 0;
+    scalar best_rate = 0;
     for (int e = 0; e < epoch; e++) {
       std::ifstream file(root + data);
       CHECK(file.is_open()) << root + data << " open fail";
@@ -194,7 +196,7 @@ int main(int argc, char **argv) {
         std::getline(file, line);
         if (!line.empty()) {
           create_input(line, input, target);
-          netWork.train(input, target);
+          netWork.train(input, target, learning_rate);
         }
       }
       file.close();
@@ -210,7 +212,12 @@ int main(int argc, char **argv) {
         learning_rate = 0.1;
       }
 #endif
-      LOG(ERROR) << "epoch[" << e << "] = " << rate << ", learning rate change to " << learning_rate;
+      if (rate > best_rate) {
+        best_rate = rate;
+        best_epoch = e;
+      }
+      LOG(ERROR) << "epoch[" << e << "] = " << rate << ", learning rate change to "
+                 << learning_rate << ", best epoch " << best_epoch << "," << best_rate;
       netWork.write(FLAGS_weight + "/weight_" + std::to_string(e) + ".yaml");
     }
 
