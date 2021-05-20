@@ -2,8 +2,8 @@
 // Created by moriarty on 2021/5/16.
 //
 
-#ifndef NEURALNETWORK_LAYER_H
-#define NEURALNETWORK_LAYER_H
+#ifndef NEURALNETWORK_NEURON_H
+#define NEURALNETWORK_NEURON_H
 #include "common.h"
 #include "glog/logging.h"
 #include <memory>
@@ -93,4 +93,4 @@ public:
 }
 
 
-#endif //NEURALNETWORK_LAYER_H
+#endif //NEURALNETWORK_NEURON_H

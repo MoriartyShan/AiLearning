@@ -1,7 +1,7 @@
 //
 // Created by moriarty on 5/17/21.
 //
-#include "layer.h"
+#include "neuron.h"
 #include "common.h"
 
 int main() {

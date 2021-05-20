@@ -7,7 +7,7 @@
 #include <opencv2/opencv.hpp>
 
 namespace AiLearning {
-#if 1
+#if 0
 using scalar = float;
 #define CV_TYPE CV_32FC1
 #else
@@ -20,8 +20,11 @@ void derivativesSigmoid(cv::Mat &matrix);
 void ELU(cv::Mat &matrix);
 void derivativesELU(cv::Mat &matrix);
 
-void Random(cv::Mat &matrix);
 void Softmax(cv::Mat &matrix);
 void derivativesSoftmax(cv::Mat &matrix);
+
+
+void Random(cv::Mat &matrix);
+
 }//namespace AiLearning
 #endif //NEURALNETWORK_COMMON_H

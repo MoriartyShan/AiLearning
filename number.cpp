@@ -2,7 +2,7 @@
 // Created by moriarty on 2021/5/16.
 //
 #include "basic.h"
-#include "layer.h"
+#include "neuron.h"
 #include "common.h"
 #include <glog/logging.h>
 #include <gflags/gflags.h>
@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
     AiLearning::NetWorks work = train();
     query(work);
   } else {
-    std::vector<int> nodes = {784, 40, 20, 10};
+    std::vector<int> nodes = {784, 500, 10};
     AiLearning::MulNetWork netWork(nodes);
 //    netWork.read("/home/moriarty/Documents/4.yaml");
     netWork.write(FLAGS_weight + "/init.yaml");
