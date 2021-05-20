@@ -11,6 +11,7 @@
 
 namespace AiLearning {
 void Random(cv::Mat &matrix) {
+  LOG(ERROR) << "try randu(InputOutputArray dst, InputArray low, InputArray high);";
   CHECK(matrix.type() == CV_TYPE);
   float max = -1;
   for (int i = 0; i < matrix.rows; i++) {

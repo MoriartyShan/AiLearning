@@ -12,14 +12,45 @@ namespace AiLearning{
 using ActiveFuction = void (*) (cv::Mat &);
 using DerivativesFuction = void (*) (cv::Mat &);
 
+class Neuron;
+class MulNetWork;
+
+using NeuronPtr = std::shared_ptr<Neuron>;
+using MulNetWorkPtr = std::shared_ptr<MulNetWork>;
+
+struct NeuronConstructor{
+  const MulNetWork *_netWork_ptr;
+
+  std::vector<int> _prev_neurons_idx;
+  std::vector<cv::Mat> _Whos;
+
+  std::vector<int> _next_neurons_idx;
+
+  size_t _input_data_size;
+  size_t _output_data_size;
+
+  std::string _active_func;
+  bool check_data() const;
+};
+
 class Neuron{
-protected:
+private:
   const std::string _active;
   ActiveFuction _active_func;
   DerivativesFuction _derivatives_func;
-  cv::Mat _Who;
+  const MulNetWork *_netWork_ptr;
+
+  const cv::Mat *_in;//only useful for the first neuron
+
+  std::vector<cv::Mat> _Whos;
   cv::Mat _processing;
-  const cv::Mat *_in;
+//  const size_t _input_data_size;//input data size
+  const size_t _output_data_size;//output data size
+  const std::vector<int> _prev_neurons_idx;
+  std::map<int, cv::Mat> _prev_neurons_error; //neuron index, error
+
+  const std::vector<int> _next_neurons_idx;
+
   const int _id;
 
   static int global_index() {
@@ -43,39 +74,37 @@ protected:
   }
 
 public:
-  Neuron(const cv::Mat &Who, const std::string &active):
-      _Who(Who.clone()), _id(global_index()), _active(active) {
-    set_active();
-  }
-  Neuron(const int in, const int out, const std::string &active);
+  Neuron(const NeuronConstructor& constructor);
 
-  const cv::Mat& Who() const {return _Who;}
+  const std::vector<cv::Mat> &Whos() const {return _Whos;}
+  const cv::Mat& Who(const int i) const {return _Whos[i];}
+  size_t num_prev() const {return _prev_neurons_idx.size();}
   const cv::Mat& processing() const {return _processing;}
-  const int input_size() const {return _Who.cols;}
-  const int output_size() const {return _Who.rows;}
-  int id() const {return _id;}
 
-  virtual const cv::Mat& query(const cv::Mat &in);
-  virtual const cv::Mat back_propogate(
+  int id() const {return _id;}
+  size_t output_data_size() const {return _output_data_size;}
+  void query(const cv::Mat &in);
+  void query();
+  void back_propogate(
       const float learning_rate, const cv::Mat &error);
-  virtual const std::string& type() const {
+  void back_propogate(const float learning_rate);
+  const std::string& type() const {
     return _active;
   };
+
+  const cv::Mat &prev_error(const int i) const {
+    return _prev_neurons_error.at(i);
+  }
 
 };
 
 class MulNetWork {
 private:
-  std::vector<std::shared_ptr<Neuron>> _layers;
-
-  cv::Mat _softmax, _exp;
-  scalar _sum;
+  std::vector<NeuronPtr> _neurons;
 public:
   MulNetWork() {}
   MulNetWork(const std::vector<int> &nodes);
-  size_t layer_nb() const {return _layers.size();}
-  int input_size() const {return _layers.front()->input_size();}
-  int output_size() const {return _layers.back()->output_size();}
+  size_t neurons_num() const {return _neurons.size();}
 
   scalar train(
       const cv::Mat &in, const cv::Mat &target, const float learning_rate = 0.1);
@@ -86,7 +115,9 @@ public:
 
   void read(const std::string &path);
 
-  const std::shared_ptr<Neuron> layer(const int i) const {return _layers[i];}
+
+  const std::vector<NeuronPtr>& neurons() const {return _neurons;}
+  const NeuronPtr& neuron(const int i) const {return _neurons[i];}
 
 };
 
