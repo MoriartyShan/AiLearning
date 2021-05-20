@@ -38,10 +38,10 @@ bool create_input(const std::string& line, cv::Mat& res, cv::Mat &target) {
   return true;
 }
 
-AiLearning::NetWorks train(const int epoch = 5) {
+AiLearning::NetWorks train(const int epoch = 5, AiLearning::NetWorks *input_work = nullptr) {
   const std::string root = FLAGS_data + "/";
   const std::string data = FLAGS_train;
-  AiLearning::NetWorks work(784, 100, 10);
+  AiLearning::NetWorks &work = *input_work;
 
   for (int e = 0; e < epoch; e++) {
     std::ifstream file(root + data);
@@ -100,7 +100,7 @@ scalar query(const AiLearning::NetWorks &work) {
       auto real = get_res(target);
       auto detect = get_res(res);
 
-      LOG(ERROR) << "[real, possiblity, detect, possiblity], [" << real.first
+      LOG(INFO) << "[real, possiblity, detect, possiblity], [" << real.first
                  << "," << real.second << "," << detect.first << ","
                  << detect.second << "]";
 
@@ -116,7 +116,7 @@ scalar query(const AiLearning::NetWorks &work) {
   }
   file.close();
 
-  LOG(INFO) << "[right, wrong], [" << right << "," << wrong << "]="
+  LOG(ERROR) << "[right, wrong], [" << right << "," << wrong << "]="
              << right / (scalar)(right + wrong);
   return right / (scalar)(right + wrong);
 }
@@ -177,9 +177,9 @@ int main(int argc, char **argv) {
     AiLearning::NetWorks work = train();
     query(work);
   } else {
-    std::vector<int> nodes = {784, 100, 10};
+    std::vector<int> nodes = {784, 100, 100, 10};
     AiLearning::MulNetWork netWork(nodes);
-//    netWork.read("/home/moriarty/Documents/4.yaml");
+
     netWork.write(FLAGS_weight + "/init.yaml");
     const std::string root = FLAGS_data + "/";
     const std::string data = FLAGS_train;

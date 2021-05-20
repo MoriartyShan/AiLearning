@@ -78,7 +78,7 @@ Neuron::Neuron(const NeuronConstructor& constructor) :
         Random(mat);
         _Whos.emplace_back(mat);
         _prev_neurons_error.emplace(prev, cv::Mat());
-        LOG(ERROR) << "set _prev_neurons_error of " << id() << "," << prev;
+//        LOG(ERROR) << "set _prev_neurons_error of " << id() << "," << prev;
       }
     }
 
@@ -161,28 +161,28 @@ MulNetWork::MulNetWork(const std::vector<int> &nodes) {
 
   CHECK(ptr->id() == 0) << ptr->id();
 
-  for (size_t i = 1; i < size - 1; i++) {
+  for (size_t i = 2; i < size - 1; i++) {
     constructor._input_data_size = nodes[i - 1];
     constructor._output_data_size = nodes[i];
     constructor._prev_neurons_idx.resize(1);
-    constructor._prev_neurons_idx[0] = i - 1;
+    constructor._prev_neurons_idx[0] = i - 2;
     constructor._next_neurons_idx.resize(1);
-    constructor._next_neurons_idx[0] = i + 1;
+    constructor._next_neurons_idx[0] = i;
 
     ptr = std::make_shared<Neuron>(constructor);
     _neurons.emplace_back(ptr);
-    CHECK(ptr->id() == i) << ptr->id() << "," << i;
+    CHECK(ptr->id() == i - 1) << ptr->id() << "," << i;
   }
 
   constructor._input_data_size = nodes[size - 2];
   constructor._output_data_size = nodes[size - 1];
   constructor._prev_neurons_idx.resize(1);
-  constructor._prev_neurons_idx[0] = size - 2;
+  constructor._prev_neurons_idx[0] = size - 3;
   constructor._next_neurons_idx.clear();
 
   ptr = std::make_shared<Neuron>(constructor);
   _neurons.emplace_back(ptr);
-  CHECK(ptr->id() == size - 1) << ptr->id() << "," << size - 1;
+  CHECK(ptr->id() == size - 2) << ptr->id() << "," << size;
 }
 
 const cv::Mat& MulNetWork::query(const cv::Mat &in) {
