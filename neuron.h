@@ -66,14 +66,18 @@ private:
   }
 
   void set_active() {
-    if (_active == "Sigmoid") {
+    const auto &ac = _active;
+    if (ac == "Sigmoid") {
       _active_func = Sigmoid;
       _derivatives_func = derivativesSigmoid;
-    } else if (_active == "ELU") {
+    } else if (ac == "ELU") {
       _active_func = ELU;
       _derivatives_func = derivativesELU;
-    } else if (_active == "Softmax") {
+    } else if (ac == "Softmax") {
       _active_func = Softmax;
+      _derivatives_func = derivativesSoftmax;
+    } else if ("RELU" == ac) {
+      _active_func = RELU;
       _derivatives_func = derivativesSoftmax;
     } else {
       LOG(FATAL) << "not implemented:" << _active;

@@ -6,7 +6,7 @@ neuron_0:
    _next_neurons_idx: [ 1 ]
    _input_data_size: 784
    _output_data_size: 100
-   _active_func: ELU
+   _active_func: RELU
    _Whos:
       []
 neuron_1:

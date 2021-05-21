@@ -10,6 +10,8 @@ DEFINE_string(data, "", "path to tran and test data");
 DEFINE_string(train, "", "train data name");
 DEFINE_string(test, "", "test data name");
 DEFINE_string(weight, "./", "write weight files to");
+DEFINE_string(model, "", "file to model.yaml");
+DEFINE_double(learning_rate, 0.0001, "learning rate");
 
 using scalar = AiLearning::scalar;
 
@@ -181,14 +183,14 @@ int main(int argc, char **argv) {
     AiLearning::NetWorks work = train();
     query(work);
   } else {
-    std::vector<int> nodes = {784, 100, 10};
+    scalar last_loss = -1;
     AiLearning::MulNetWork netWork;
-    netWork.read("/home/moriarty/Projects/AiLearning/docs/weight_21.yaml");
+    netWork.read(FLAGS_model);
     netWork.write("/home/moriarty/init_weight.yaml", true);
     const std::string root = FLAGS_data + "/";
     const std::string data = FLAGS_train;
     const int epoch = 100;
-    scalar learning_rate = 0.0001;
+    scalar learning_rate = FLAGS_learning_rate;
     int best_epoch = 0;
     scalar best_rate = 0;
     for (int e = 0; e < epoch; e++) {
@@ -231,6 +233,10 @@ int main(int argc, char **argv) {
                  << ",total loss," << loss
                  << ",dataset size," << train_size
                  << ",average loss," << loss/train_size;
+      if (last_loss > 0 && last_loss < loss) {
+        learning_rate *= 0.3;
+      }
+      last_loss = loss;
       netWork.write(FLAGS_weight + "/weight_" + std::to_string(e) + ".yaml", true);
     }
 

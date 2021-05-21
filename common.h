@@ -23,6 +23,8 @@ void derivativesELU(cv::Mat &matrix);
 void Softmax(cv::Mat &matrix);
 void derivativesSoftmax(cv::Mat &matrix);
 
+void RELU(cv::Mat &matrix);
+void derivativesRELU(cv::Mat &matrix);
 
 void Random(cv::Mat &matrix);
 

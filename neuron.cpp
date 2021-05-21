@@ -158,22 +158,19 @@ void Neuron::query() {
   _in = nullptr;
   _processing.setTo(0);
   for (size_t i = 0; i < prev_num; i++) {
-//    LOG(ERROR) << "prev is " << _prev_neurons_idx[i];
-//    LOG(ERROR) << "neuron size = " << _netWork_ptr->neurons_num();
-//    LOG(ERROR) << "prev ptr " << _netWork_ptr->neuron(_prev_neurons_idx[i]);
-//    LOG(ERROR) << "prev id " << _netWork_ptr->neuron(_prev_neurons_idx[i])->id();
-
+//    LOG(INFO) << "who:\n" << Who(i);
+//    std::ofstream file("./who" + std::to_string(i) + ".csv");
+//    file << cv::Formatter::get(cv::Formatter::FMT_CSV)->format(Who(i)) << std::endl;
+//    file.close();
     _processing += Who(i) * _netWork_ptr->neuron(_prev_neurons_idx[i])->processing();
   }
   _active_func(_processing);
-
   return;
 }
 
 void Neuron::back_propogate(
   const float learning_rate, const cv::Mat &error) {
   const size_t prev_num = num_prev();
-//  LOG(FATAL) << "error " << error.t();
   _derivatives_func(_processing);
   for (size_t i = 0; i < prev_num; i++) {
     _prev_neurons_error.at(_prev_neurons_idx[i]) = Who(i).t() * error;
@@ -185,6 +182,7 @@ void Neuron::back_propogate(
     _Whos[0] += learning_rate *
                 (error.mul(_processing)) * _in->t();
   }
+  CHECK(!std::isnan(Who(0).at<scalar>(0,0))) << "_process " << _processing.t();
 
   return;
 }
@@ -213,14 +211,13 @@ const cv::Mat& MulNetWork::query(const cv::Mat &in) {
   for (size_t i = 1; i < neurons_num(); i++) {
     neuron(i)->query();
   }
-  return neuron(neurons_num() - 1)->processing();
+  return neurons().back()->processing();
 }
 
 scalar MulNetWork::train(const cv::Mat &in, const cv::Mat &target, const float learning_rate) {
   cv::Mat cur_error = (target - query(in));
   double loss = cv::norm(cur_error);
-
-//  LOG(ERROR) << "loss = " << cv::norm(cur_error) << "," << cur_error.t();
+//  LOG(INFO) << "loss = " << loss << "," << cur_error.t();
   auto neuron = neurons().rbegin();
   (*neuron)->back_propogate(learning_rate, cur_error);
   for (neuron++; neuron != neurons().rend(); neuron++) {
