@@ -26,11 +26,18 @@ struct NeuronConstructor{
 
   std::vector<int> _next_neurons_idx;
 
-  size_t _input_data_size;
-  size_t _output_data_size;
+  int _input_data_size;
+  int _output_data_size;
 
   std::string _active_func;
   bool check_data() const;
+
+  void write(
+      cv::FileStorage &fs, const int id,
+      const bool output_matrix = true) const;
+
+  bool read(cv::FileStorage &fs, const int id);
+
 };
 
 class Neuron{
@@ -45,7 +52,7 @@ private:
   std::vector<cv::Mat> _Whos;
   cv::Mat _processing;
 //  const size_t _input_data_size;//input data size
-  const size_t _output_data_size;//output data size
+  const int _output_data_size;//output data size
   const std::vector<int> _prev_neurons_idx;
   std::map<int, cv::Mat> _prev_neurons_error; //neuron index, error
 
@@ -75,6 +82,7 @@ private:
 
 public:
   Neuron(const NeuronConstructor& constructor);
+  void constructor(NeuronConstructor &c) const;
 
   const std::vector<cv::Mat> &Whos() const {return _Whos;}
   const cv::Mat& Who(const int i) const {return _Whos[i];}
@@ -103,7 +111,7 @@ private:
   std::vector<NeuronPtr> _neurons;
 public:
   MulNetWork() {}
-  MulNetWork(const std::vector<int> &nodes);
+  MulNetWork(const std::vector<NeuronConstructor> &constructors);
   size_t neurons_num() const {return _neurons.size();}
 
   scalar train(
@@ -111,7 +119,7 @@ public:
 
   const cv::Mat& query(const cv::Mat &in);
 
-  void write(const std::string &path) const;
+  void write(const std::string &path, const bool output_matrix) const;
 
   void read(const std::string &path);
 

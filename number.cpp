@@ -177,10 +177,10 @@ int main(int argc, char **argv) {
     AiLearning::NetWorks work = train();
     query(work);
   } else {
-    std::vector<int> nodes = {784, 100, 100, 10};
-    AiLearning::MulNetWork netWork(nodes);
-
-    netWork.write(FLAGS_weight + "/init.yaml");
+    std::vector<int> nodes = {784, 100, 10};
+    AiLearning::MulNetWork netWork;
+    netWork.read("/home/moriarty/Projects/AiLearning/docs/init_weight_empty.yaml");
+    netWork.write("/home/moriarty/init_weight.yaml", false);
     const std::string root = FLAGS_data + "/";
     const std::string data = FLAGS_train;
     const int epoch = 100;
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
       }
       LOG(ERROR) << "epoch[" << e << "] = " << rate << ", learning rate change to "
                  << learning_rate << ", best epoch " << best_epoch << "," << best_rate;
-      netWork.write(FLAGS_weight + "/weight_" + std::to_string(e) + ".yaml");
+      netWork.write(FLAGS_weight + "/weight_" + std::to_string(e) + ".yaml", true);
     }
 
   }

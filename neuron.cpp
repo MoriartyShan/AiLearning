@@ -6,6 +6,37 @@
 
 namespace AiLearning{
 
+void NeuronConstructor::write(cv::FileStorage &fs, const int id, const bool output_matrix) const {
+  fs << ("neuron_" + std::to_string(id)) << "{"
+     << "_prev_neurons_idx" << _prev_neurons_idx
+     << "_next_neurons_idx" << _next_neurons_idx
+     << "_input_data_size" << _input_data_size
+     << "_output_data_size" << _output_data_size
+     << "_active_func" << _active_func;
+  if (output_matrix) {
+    fs << "_Whos" << _Whos;
+  } else {
+    fs << "_Whos" << std::vector<cv::Mat>();
+  }
+  fs << "}";
+}
+
+bool NeuronConstructor::read(cv::FileStorage &fs, const int id) {
+  auto node = fs[("neuron_" + std::to_string(id))];
+  if (node.isNone()) {
+    return false;
+  }
+  node["_prev_neurons_idx"] >> _prev_neurons_idx;
+  node["_Whos"] >> _Whos;
+  node["_next_neurons_idx"] >> _next_neurons_idx;
+  node["_input_data_size"] >> _input_data_size;
+  node["_output_data_size"] >> _output_data_size;
+  node["_active_func"] >> _active_func;
+
+//  LOG(ERROR) << "read Who " << _Whos.size() << "," << _Whos[0].size();
+
+  return true;
+}
 
 bool NeuronConstructor::check_data() const {
   if (_active_func.empty()) {
@@ -64,6 +95,7 @@ Neuron::Neuron(const NeuronConstructor& constructor) :
   _processing.create(_output_data_size, 1, CV_TYPE);
 
   if (constructor._Whos.empty()) {
+    LOG(ERROR) << "constructor input who empty, " << id();
     if (_prev_neurons_idx.empty()) {
       ///no prev neuron, the first one
       cv::Mat mat(_output_data_size,
@@ -77,19 +109,41 @@ Neuron::Neuron(const NeuronConstructor& constructor) :
                     _netWork_ptr->neuron(prev)->output_data_size(), CV_TYPE);
         Random(mat);
         _Whos.emplace_back(mat);
-        _prev_neurons_error.emplace(prev, cv::Mat());
-//        LOG(ERROR) << "set _prev_neurons_error of " << id() << "," << prev;
       }
     }
 
   } else {
     _Whos.reserve(constructor._Whos.size());
+    LOG(ERROR) << "constructor input who has, " << id() << "," << constructor._Whos.size();
     for (auto &Who : constructor._Whos) {
       CHECK(Who.rows == output_data_size()) << "Who size = "
         << Who.rows << "," << Who.cols << "; node_num =" << output_data_size();
       _Whos.emplace_back(Who.clone());
     }
   }
+
+  if (!_prev_neurons_idx.empty()) {
+    for (auto prev : _prev_neurons_idx) {
+      _prev_neurons_error.emplace(prev, cv::Mat());
+    }
+  }
+
+}
+
+void Neuron::constructor(NeuronConstructor &c) const {
+  c._next_neurons_idx = _next_neurons_idx;
+  c._output_data_size = _output_data_size;
+  if (_Whos.size() == 1) {
+    c._input_data_size = _Whos.front().cols;
+  } else {
+    c._input_data_size = 0;
+  }
+
+  c._active_func = _active;
+  c._prev_neurons_idx = _prev_neurons_idx;
+  c._netWork_ptr = _netWork_ptr;
+  c._Whos = _Whos;
+  return;
 }
 
 void Neuron::query(const cv::Mat &in){
@@ -104,6 +158,11 @@ void Neuron::query() {
   _in = nullptr;
   _processing.setTo(0);
   for (size_t i = 0; i < prev_num; i++) {
+//    LOG(ERROR) << "prev is " << _prev_neurons_idx[i];
+//    LOG(ERROR) << "neuron size = " << _netWork_ptr->neurons_num();
+//    LOG(ERROR) << "prev ptr " << _netWork_ptr->neuron(_prev_neurons_idx[i]);
+//    LOG(ERROR) << "prev id " << _netWork_ptr->neuron(_prev_neurons_idx[i])->id();
+
     _processing += Who(i) * _netWork_ptr->neuron(_prev_neurons_idx[i])->processing();
   }
   _active_func(_processing);
@@ -141,48 +200,12 @@ void Neuron::back_propogate(const float learning_rate) {
 }
 
 
-MulNetWork::MulNetWork(const std::vector<int> &nodes) {
-  const size_t size = nodes.size();
-  _neurons.reserve(size - 1);
-
-  NeuronConstructor constructor;
-  constructor._netWork_ptr = this;
-  constructor._active_func = "Sigmoid";
-  constructor._Whos.clear();
-
-  constructor._input_data_size = nodes[0];
-  constructor._output_data_size = nodes[1];
-  constructor._prev_neurons_idx.clear();
-  constructor._next_neurons_idx.emplace_back(1);
-
-  std::shared_ptr<Neuron> ptr =
-    std::make_shared<Neuron>(constructor);
-  _neurons.emplace_back(static_cast<std::shared_ptr<Neuron>>(ptr));
-
-  CHECK(ptr->id() == 0) << ptr->id();
-
-  for (size_t i = 2; i < size - 1; i++) {
-    constructor._input_data_size = nodes[i - 1];
-    constructor._output_data_size = nodes[i];
-    constructor._prev_neurons_idx.resize(1);
-    constructor._prev_neurons_idx[0] = i - 2;
-    constructor._next_neurons_idx.resize(1);
-    constructor._next_neurons_idx[0] = i;
-
-    ptr = std::make_shared<Neuron>(constructor);
-    _neurons.emplace_back(ptr);
-    CHECK(ptr->id() == i - 1) << ptr->id() << "," << i;
+MulNetWork::MulNetWork(const std::vector<NeuronConstructor> &constructors) {
+  const size_t size = constructors.size();
+  for (size_t i = 0; i < size; i++) {
+    _neurons.emplace_back(std::make_shared<Neuron>(constructors[i]));
+    CHECK(_neurons.back()->id() == i) << _neurons.back()->id() << "," << i;
   }
-
-  constructor._input_data_size = nodes[size - 2];
-  constructor._output_data_size = nodes[size - 1];
-  constructor._prev_neurons_idx.resize(1);
-  constructor._prev_neurons_idx[0] = size - 3;
-  constructor._next_neurons_idx.clear();
-
-  ptr = std::make_shared<Neuron>(constructor);
-  _neurons.emplace_back(ptr);
-  CHECK(ptr->id() == size - 2) << ptr->id() << "," << size;
 }
 
 const cv::Mat& MulNetWork::query(const cv::Mat &in) {
@@ -208,40 +231,36 @@ scalar MulNetWork::train(const cv::Mat &in, const cv::Mat &target, const float l
 }
 
 
-void MulNetWork::write(const std::string &path) const {
-#if 0
-  std::vector<cv::Mat> layers(_layers.size());
+void MulNetWork::write(const std::string &path, const bool output_matrix) const {
+  cv::FileStorage fs(path, cv::FileStorage::WRITE);
+  CHECK(fs.isOpened()) << path << " open fail";
+  NeuronConstructor constructor;
 
-  for (int i = 0; i < layer_nb(); i++) {
-    layers[i] = _layers[i]->Who();
+  fs << "neurons_num" << (int)neurons_num();
+  for (int i = 0; i < neurons_num(); i++) {
+    neuron(i)->constructor(constructor);
+    constructor.write(fs, i, output_matrix);
   }
-
-  cv::FileStorage file(path, cv::FileStorage::WRITE);
-  CHECK(file.isOpened()) << "path:" << path << " open fail";
-  cv::write(file, "layer_nb", (int)layer_nb());
-  cv::write(file, "weights", layers);
-  file.release();
-#endif
+  fs.release();
 }
 
 void MulNetWork::read(const std::string &path) {
-#if 0
-  std::vector<cv::Mat> layers;
-  cv::FileStorage file(path, cv::FileStorage::READ);
-  CHECK(file.isOpened()) << "path:" << path << " open fail";
+  cv::FileStorage fs(path, cv::FileStorage::READ);
+  CHECK(fs.isOpened()) << "path:" << path << " open fail";
   int layer_nb;
-  cv::read(file["layer_nb"], layer_nb, -1);
-  CHECK(layer_nb > 0) << layer_nb;
-  layers.reserve(layer_nb);
-  cv::read(file["weights"], layers);
-  file.release();
+  NeuronConstructor constructor;
+  constructor._netWork_ptr = this;
 
-  _layers.clear();
-  for (auto &l : layers) {
-    auto ptr = std::make_shared<Neuron>(l, "");
-    _layers.emplace_back(static_cast<std::shared_ptr<Neuron>>(ptr));
+  cv::read(fs["neurons_num"], layer_nb, -1);
+  CHECK(layer_nb > 0) << layer_nb;
+  _neurons.reserve(layer_nb);
+
+  for (int i = 0; i < layer_nb; i++) {
+    if (!constructor.read(fs,  i)) {
+      LOG(FATAL) << "layer number is " << layer_nb << ", can not find neuron_" << i;
+    }
+    _neurons.emplace_back(std::make_shared<Neuron>(constructor));
   }
-#endif
   return;
 }
 
