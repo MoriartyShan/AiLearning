@@ -26,7 +26,11 @@ void derivativesSoftmax(cv::Mat &matrix);
 void RELU(cv::Mat &matrix);
 void derivativesRELU(cv::Mat &matrix);
 
+void Tanh(cv::Mat &matrix);
+void derivateTanh(cv::Mat &matrix);
+
 void Random(cv::Mat &matrix);
+bool check(const cv::Mat &matrix);
 
 }//namespace AiLearning
 #endif //NEURALNETWORK_COMMON_H

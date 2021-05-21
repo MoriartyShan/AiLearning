@@ -149,7 +149,9 @@ void Neuron::constructor(NeuronConstructor &c) const {
 void Neuron::query(const cv::Mat &in){
   _in = &in;
   _processing = Who(0) * in;
+  CHECK(check(processing())) << "_process " << processing().t();
   _active_func(_processing);
+  CHECK(check(processing())) << "_process " << processing().t();
   return;
 }
 
@@ -157,6 +159,7 @@ void Neuron::query() {
   const size_t prev_num = num_prev();
   _in = nullptr;
   _processing.setTo(0);
+  CHECK(check(processing())) << "_process " << processing().t();
   for (size_t i = 0; i < prev_num; i++) {
 //    LOG(INFO) << "who:\n" << Who(i);
 //    std::ofstream file("./who" + std::to_string(i) + ".csv");
@@ -164,7 +167,9 @@ void Neuron::query() {
 //    file.close();
     _processing += Who(i) * _netWork_ptr->neuron(_prev_neurons_idx[i])->processing();
   }
+  CHECK(check(processing())) << "_process " << processing().t();
   _active_func(_processing);
+  CHECK(check(processing())) << "_process " << processing().t();
   return;
 }
 
@@ -172,17 +177,20 @@ void Neuron::back_propogate(
   const float learning_rate, const cv::Mat &error) {
   const size_t prev_num = num_prev();
   _derivatives_func(_processing);
+  CHECK(check(processing())) << "_process " << _processing.t() << "," << id();
   for (size_t i = 0; i < prev_num; i++) {
     _prev_neurons_error.at(_prev_neurons_idx[i]) = Who(i).t() * error;
     _Whos[i] += learning_rate *
             (error.mul(_processing)) * (_netWork_ptr->neuron(i)->processing()).t();
+    CHECK(check(Who(i))) << "Who(" << i << ")" << _processing.t();
   }
   if (_in != nullptr) {
     CHECK(prev_num == 0) << prev_num << "," << id();
     _Whos[0] += learning_rate *
                 (error.mul(_processing)) * _in->t();
+    CHECK(check(Who(0))) << "Who 0 " << _processing.t();
   }
-  CHECK(!std::isnan(Who(0).at<scalar>(0,0))) << "_process " << _processing.t();
+
 
   return;
 }

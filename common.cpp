@@ -62,7 +62,7 @@ namespace AiLearning {
 void Random(cv::Mat &matrix) {
   CHECK(matrix.type() == CV_TYPE);
 #if 1
-  cv::randu(matrix, 0, 0.9999);
+  cv::randu(matrix, -0.9999, 0.9999);
 //  LOG(ERROR) << matrix.at<scalar>(0, 0);
 //  for (int i = 0; i < matrix.rows; i++) {
 //    for (int j = 0; j < matrix.cols; j++) {
@@ -76,6 +76,29 @@ void Random(cv::Mat &matrix) {
     }
   }
 #endif
+}
+
+template<typename T>
+bool check(T *data, const int size) {
+  for (int i = 0; i < size; i++) {
+    if (std::isnan(data[i]) || std::isinf(data[i])) {
+      LOG(ERROR) << "data[" << i << "] is invalid " << data[i];
+      return false;
+    }
+  }
+  return true;
+}
+
+bool check(const cv::Mat &matrix) {
+  CHECK(matrix.isContinuous());
+  if (matrix.type() == CV_32FC1) {
+    return check<float>((float *) matrix.data, matrix.cols * matrix.rows);
+  } else if (matrix.type() == CV_64FC1) {
+    return check<double>((double *) matrix.data, matrix.cols * matrix.rows);
+  } else {
+    LOG(FATAL) << "Not implemented " << matrix.type();
+  }
+  return false;
 }
 
 template<typename T>
@@ -191,14 +214,24 @@ void derivativesSoftmax(cv::Mat &matrix) {
 
 void Softmax(cv::Mat &matrix) {
   scalar max = cv::max(matrix);
-  scalar diff = (max > 500) ? (max - 500) : 0;
   cv::Mat exp;
-  matrix = matrix - diff;
+  matrix = matrix - max;
   cv::exp(matrix, exp);
   CHECK(exp.channels() == 1) << exp.channels();
   scalar sum = cv::sum(exp)(0);
   matrix = exp / sum;
   return;
+}
+
+void derivateTanh(cv::Mat &matrix) {
+  matrix = 1 - matrix.mul(matrix);
+}
+
+void Tanh(cv::Mat &matrix) {
+  cv::Mat exp, _exp;
+  cv::exp(matrix, exp);
+  cv::exp(-matrix, _exp);
+  matrix = (exp - _exp) / (exp + _exp);
 }
 
 }//namespace AiLearning

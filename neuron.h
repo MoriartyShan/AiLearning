@@ -78,7 +78,10 @@ private:
       _derivatives_func = derivativesSoftmax;
     } else if ("RELU" == ac) {
       _active_func = RELU;
-      _derivatives_func = derivativesSoftmax;
+      _derivatives_func = derivativesRELU;
+    } else if ("Tanh" == ac) {
+      _active_func = Tanh;
+      _derivatives_func = derivateTanh;
     } else {
       LOG(FATAL) << "not implemented:" << _active;
     }
