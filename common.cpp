@@ -11,18 +11,22 @@
 
 namespace AiLearning {
 void Random(cv::Mat &matrix) {
-  LOG(ERROR) << "try randu(InputOutputArray dst, InputArray low, InputArray high);";
   CHECK(matrix.type() == CV_TYPE);
-  float max = -1;
+#if 1
+  cv::randu(matrix, -0.9999, 0.9999);
+  LOG(ERROR) << matrix.at<scalar>(0, 0);
+//  for (int i = 0; i < matrix.rows; i++) {
+//    for (int j = 0; j < matrix.cols; j++) {
+//      CHECK(matrix.at<scalar>(i, j) > -0.9999 && matrix.at<scalar>(i, j) < 0.9999) << matrix.at<scalar>(i, j);
+//    }
+//  }
+#else
   for (int i = 0; i < matrix.rows; i++) {
     for (int j = 0; j < matrix.cols; j++) {
       matrix.at<scalar>(i, j) = RANDOM(-0.999, 0.999);
-//      LOG(ERROR) << matrix.at<float>(i, j);
-      if (matrix.at<scalar>(i, j) > max) {
-        max = matrix.at<scalar>(i, j);
-      }
     }
   }
+#endif
 }
 
 template<typename T>

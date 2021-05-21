@@ -172,22 +172,28 @@ int main(int argc, char **argv) {
   google::InitGoogleLogging(argv[0]); // option --[also]logtostderr
   //        --stderrthreshold=0
 
-  srand(time(0));
+  int seed = time(0);
+  LOG(ERROR) << "rand seed = " << seed;
+  std::srand(seed);
+  cv::setRNGSeed(seed);
+
   if (false) {
     AiLearning::NetWorks work = train();
     query(work);
   } else {
     std::vector<int> nodes = {784, 100, 10};
     AiLearning::MulNetWork netWork;
-    netWork.read("/home/moriarty/Projects/AiLearning/docs/init_weight_empty.yaml");
-    netWork.write("/home/moriarty/init_weight.yaml", false);
+    netWork.read("/home/moriarty/Projects/AiLearning/docs/weight_21.yaml");
+    netWork.write("/home/moriarty/init_weight.yaml", true);
     const std::string root = FLAGS_data + "/";
     const std::string data = FLAGS_train;
     const int epoch = 100;
-    scalar learning_rate = 0.1;
+    scalar learning_rate = 0.0001;
     int best_epoch = 0;
     scalar best_rate = 0;
     for (int e = 0; e < epoch; e++) {
+      scalar loss = 0;
+      int train_size = 0;
       std::ifstream file(root + data);
       CHECK(file.is_open()) << root + data << " open fail";
       std::string line;
@@ -196,7 +202,8 @@ int main(int argc, char **argv) {
         std::getline(file, line);
         if (!line.empty()) {
           create_input(line, input, target);
-          netWork.train(input, target, learning_rate);
+          loss += netWork.train(input, target, learning_rate);
+          train_size++;
         }
       }
       file.close();
@@ -216,8 +223,14 @@ int main(int argc, char **argv) {
         best_rate = rate;
         best_epoch = e;
       }
-      LOG(ERROR) << "epoch[" << e << "] = " << rate << ", learning rate change to "
-                 << learning_rate << ", best epoch " << best_epoch << "," << best_rate;
+      LOG(ERROR) << "epoch[" << e << "]:" << std::setprecision(8)
+                 << "accuracy," << rate
+                 << ",learning rate," << learning_rate
+                 << ",best epoch, " << best_epoch
+                 << ",best accuracy, " << best_rate
+                 << ",total loss," << loss
+                 << ",dataset size," << train_size
+                 << ",average loss," << loss/train_size;
       netWork.write(FLAGS_weight + "/weight_" + std::to_string(e) + ".yaml", true);
     }
 
