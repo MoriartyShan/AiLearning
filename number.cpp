@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
     const int epoch = 100;
     scalar learning_rate = FLAGS_learning_rate;
     int best_epoch = 0;
-    scalar best_rate = 0;
+    scalar best_loss = 0;
     for (int e = 0; e < epoch; e++) {
       scalar loss = 0;
       int train_size = 0;
@@ -221,20 +221,23 @@ int main(int argc, char **argv) {
         learning_rate = 0.1;
       }
 #endif
-      if (rate > best_rate) {
-        best_rate = rate;
+      if (loss > best_loss) {
+        best_loss = loss;
         best_epoch = e;
       }
       LOG(ERROR) << "epoch[" << e << "]:" << std::setprecision(8)
                  << "accuracy," << rate
                  << ",learning rate," << learning_rate
                  << ",best epoch, " << best_epoch
-                 << ",best accuracy, " << best_rate
+                 << ",best loss, " << best_loss
                  << ",total loss," << loss
                  << ",dataset size," << train_size
                  << ",average loss," << loss/train_size;
       if (last_loss > 0 && last_loss < loss) {
-        learning_rate *= 0.3;
+        learning_rate *= 0.5;
+      }
+      if (learning_rate < 0.000001) {
+        learning_rate = 0.000001;
       }
       last_loss = loss;
       netWork.write(FLAGS_weight + "/weight_" + std::to_string(e) + ".yaml", true);
