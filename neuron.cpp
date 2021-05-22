@@ -181,7 +181,7 @@ void Neuron::back_propogate(
   for (size_t i = 0; i < prev_num; i++) {
     _prev_neurons_error.at(_prev_neurons_idx[i]) = Who(i).t() * error;
     _Whos[i] += learning_rate *
-            (error.mul(_processing)) * (_netWork_ptr->neuron(i)->processing()).t();
+            (error.mul(_processing)) * (_netWork_ptr->neuron(_prev_neurons_idx[i])->processing()).t();
     CHECK(check(Who(i))) << "Who(" << i << ")" << _processing.t();
   }
   if (_in != nullptr) {
