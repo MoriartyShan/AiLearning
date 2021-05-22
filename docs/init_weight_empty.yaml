@@ -1,35 +1,19 @@
 %YAML:1.0
 ---
-neurons_num: 4
+neurons_num: 2
 neuron_0:
    _prev_neurons_idx: []
    _next_neurons_idx: [ 1 ]
    _input_data_size: 784
-   _output_data_size: 400
+   _output_data_size: 100
    _active_func: Sigmoid
    _Whos:
       []
 neuron_1:
    _prev_neurons_idx: [ 0 ]
-   _next_neurons_idx: [ 2 ]
-   _input_data_size: 400
-   _output_data_size: 200
-   _active_func: Sigmoid
-   _Whos:
-      []
-neuron_2:
-   _prev_neurons_idx: [ 1 ]
-   _next_neurons_idx: [ 3 ]
-   _input_data_size: 200
-   _output_data_size: 100
-   _active_func: Sigmoid
-   _Whos:
-      []
-neuron_3:
-   _prev_neurons_idx: [ 2 ]
    _next_neurons_idx: []
    _input_data_size: 100
    _output_data_size: 10
-   _active_func: Softmax
+   _active_func: Sigmoid
    _Whos:
       []

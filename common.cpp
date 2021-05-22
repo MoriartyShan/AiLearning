@@ -256,7 +256,6 @@ void Tanh(T *data, const int size) {
       T exp = std::exp(2 * data[i]);
       data[i] = (exp - 1) / (1 + exp);
     }
-
   }
 }
 

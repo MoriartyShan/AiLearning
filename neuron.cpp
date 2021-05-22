@@ -149,9 +149,10 @@ void Neuron::constructor(NeuronConstructor &c) const {
 void Neuron::query(const cv::Mat &in){
   _in = &in;
   _processing = Who(0) * in;
-  CHECK(check(processing())) << "_process " << processing().t();
+  CHECK(check(processing())) << "neuron_" << id() << ",_process " << processing().t();
   _active_func(_processing);
-  CHECK(check(processing())) << "_process " << processing().t();
+  CHECK(check(processing())) << "neuron_" << id() << ",_process " << processing().t();
+//  LOG(ERROR) << "neuron_" << id() << " output " << _processing.size();
   return;
 }
 
@@ -159,39 +160,57 @@ void Neuron::query() {
   const size_t prev_num = num_prev();
   _in = nullptr;
   _processing.setTo(0);
-  CHECK(check(processing())) << "_process " << processing().t();
+  CHECK(check(processing())) << "neuron_" << id() << ",_process " << processing().t();
   for (size_t i = 0; i < prev_num; i++) {
 //    LOG(INFO) << "who:\n" << Who(i);
 //    std::ofstream file("./who" + std::to_string(i) + ".csv");
 //    file << cv::Formatter::get(cv::Formatter::FMT_CSV)->format(Who(i)) << std::endl;
 //    file.close();
     _processing += Who(i) * _netWork_ptr->neuron(_prev_neurons_idx[i])->processing();
+//    LOG(ERROR) << "neuron_" << id() << " read from neuron_" << _prev_neurons_idx[i] << " size "
+//               << ",who size " << Who(i).size()
+//               << _netWork_ptr->neuron(_prev_neurons_idx[i])->processing().size();
   }
-  CHECK(check(processing())) << "_process " << processing().t();
+  CHECK(check(processing())) << "neuron_" << id() << ",_process " << processing().t();
   _active_func(_processing);
-  CHECK(check(processing())) << "_process " << processing().t();
+//  LOG(ERROR) << "neuron_" << id() << " output " << _processing.size();
+  CHECK(check(processing())) << "neuron_" << id() << ",_process " << processing().t();
   return;
 }
 
 void Neuron::back_propogate(
   const float learning_rate, const cv::Mat &error) {
   const size_t prev_num = num_prev();
-  _derivatives_func(_processing);
-  CHECK(check(processing())) << "_process " << _processing.t() << "," << id();
+  bool cross = false;
+  if (_next_neurons_idx.empty() && (_active == "Softmax")) {
+    ///(Cross Entropy) & Softmax
+    ///derivate (Tk - Ok) * Oj, Oj is the input from jth neuron of last level
+    cross = true;
+  } else {
+    _derivatives_func(_processing);
+  }
+
+  CHECK(check(processing())) << "neuron_" << id() << ",_process " << _processing.t() << "," << id();
   for (size_t i = 0; i < prev_num; i++) {
     _prev_neurons_error.at(_prev_neurons_idx[i]) = Who(i).t() * error;
-    _Whos[i] += learning_rate *
-            (error.mul(_processing)) * (_netWork_ptr->neuron(_prev_neurons_idx[i])->processing()).t();
-    CHECK(check(Who(i))) << "Who(" << i << ")" << _processing.t();
+    if (cross) {
+      _Whos[i] += learning_rate *
+                  error * (_netWork_ptr->neuron(_prev_neurons_idx[i])->processing()).t();
+      LOG(ERROR) << "cross";
+    } else {
+      _Whos[i] += learning_rate *
+                  (error.mul(_processing)) * (_netWork_ptr->neuron(_prev_neurons_idx[i])->processing()).t();
+    }
+
+
+    CHECK(check(Who(i))) << "neuron_" << id() << ",Who(" << i << ")" << _processing.t();
   }
   if (_in != nullptr) {
     CHECK(prev_num == 0) << prev_num << "," << id();
     _Whos[0] += learning_rate *
                 (error.mul(_processing)) * _in->t();
-    CHECK(check(Who(0))) << "Who 0 " << _processing.t();
+    CHECK(check(Who(0))) << "neuron_" << id() << ",Who 0 " << _processing.t();
   }
-
-
   return;
 }
 

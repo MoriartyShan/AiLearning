@@ -43,7 +43,7 @@ bool create_input(const std::string& line, cv::Mat& res, cv::Mat &target) {
 AiLearning::NetWorks train(const int epoch = 5, AiLearning::NetWorks *input_work = nullptr) {
   const std::string root = FLAGS_data + "/";
   const std::string data = FLAGS_train;
-  AiLearning::NetWorks &work = *input_work;
+  AiLearning::NetWorks work(784, 100, 10);
 
   for (int e = 0; e < epoch; e++) {
     std::ifstream file(root + data);
@@ -179,8 +179,8 @@ int main(int argc, char **argv) {
   std::srand(seed);
   cv::setRNGSeed(seed);
 
-  if (false) {
-    AiLearning::NetWorks work = train();
+  if (true) {
+    AiLearning::NetWorks work = train(1);
     query(work);
   } else {
     scalar last_loss = -1;
@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
     const int epoch = 100;
     scalar learning_rate = FLAGS_learning_rate;
     int best_epoch = 0;
-    scalar best_loss = 0;
+    scalar best_loss = -1;
     for (int e = 0; e < epoch; e++) {
       scalar loss = 0;
       int train_size = 0;
@@ -221,7 +221,7 @@ int main(int argc, char **argv) {
         learning_rate = 0.1;
       }
 #endif
-      if (loss > best_loss) {
+      if (best_loss < 0 || loss < best_loss) {
         best_loss = loss;
         best_epoch = e;
       }
