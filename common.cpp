@@ -90,6 +90,9 @@ bool check(T *data, const int size) {
 }
 
 bool check(const cv::Mat &matrix) {
+#if 1
+  return cv::checkRange(matrix);
+#else
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     return check<float>((float *) matrix.data, matrix.cols * matrix.rows);
@@ -99,19 +102,36 @@ bool check(const cv::Mat &matrix) {
     LOG(FATAL) << "Not implemented " << matrix.type();
   }
   return false;
+#endif
 }
 
 template<typename T>
 void Sigmoid(T *data, const int size) {
   for (int i = 0; i < size; i++) {
-    data[i] = 1 / (std::exp(-data[i]) + 1.0);
+    if (data[i] > 0) {
+      data[i] = 1 / (std::exp(-data[i]) + 1.0);
+    } else {
+      T exp = std::exp(data[i]);
+      data[i] = exp / (1 + exp);
+    }
   }
 }
 
 void Sigmoid(cv::Mat &matrix) {
+#if 0
   cv::Mat tmp = -matrix;
   cv::exp(tmp, matrix);
   matrix = 1 / (matrix + 1);
+#else
+  CHECK(matrix.isContinuous());
+  if (matrix.type() == CV_32FC1) {
+    Sigmoid<float>((float *) matrix.data, matrix.cols * matrix.rows);
+  } else if (matrix.type() == CV_64FC1) {
+    Sigmoid<double>((double *) matrix.data, matrix.cols * matrix.rows);
+  } else {
+    LOG(FATAL) << "Not implemented " << matrix.type();
+  }
+#endif
 }
 
 void derivativesSigmoid(cv::Mat &matrix) {
@@ -124,7 +144,6 @@ void ELU(T *data, const int size) {
   for (int i = 0; i < size; i++) {
     if (data[i] <= 0) {
       data[i] = ELU_COEF * (std::exp(data[i]) - 1);
-      //LOG(ERROR) << "d[" << i << "]" << d << "," << data[i];
     }
   }
 }
@@ -227,11 +246,29 @@ void derivateTanh(cv::Mat &matrix) {
   matrix = 1 - matrix.mul(matrix);
 }
 
+template<typename T>
+void Tanh(T *data, const int size) {
+  for (int i = 0; i < size; i++) {
+    if (data[i] > 0) {
+      T exp = std::exp(-2 * data[i]);
+      data[i] = (1 - exp) / (1 + exp);
+    } else {
+      T exp = std::exp(2 * data[i]);
+      data[i] = (exp - 1) / (1 + exp);
+    }
+
+  }
+}
+
 void Tanh(cv::Mat &matrix) {
-  cv::Mat exp, _exp;
-  cv::exp(matrix, exp);
-  cv::exp(-matrix, _exp);
-  matrix = (exp - _exp) / (exp + _exp);
+  CHECK(matrix.isContinuous());
+  if (matrix.type() == CV_32FC1) {
+    Tanh<float>((float *) matrix.data, matrix.cols * matrix.rows);
+  } else if (matrix.type() == CV_64FC1) {
+    Tanh<double>((double *) matrix.data, matrix.cols * matrix.rows);
+  } else {
+    LOG(FATAL) << "Not implemented " << matrix.type();
+  }
 }
 
 }//namespace AiLearning
