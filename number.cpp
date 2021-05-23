@@ -179,7 +179,7 @@ int main(int argc, char **argv) {
   std::srand(seed);
   cv::setRNGSeed(seed);
 
-  if (true) {
+  if (false) {
     AiLearning::NetWorks work = train(1);
     query(work);
   } else {

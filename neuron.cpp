@@ -166,6 +166,10 @@ void Neuron::query() {
 //    std::ofstream file("./who" + std::to_string(i) + ".csv");
 //    file << cv::Formatter::get(cv::Formatter::FMT_CSV)->format(Who(i)) << std::endl;
 //    file.close();
+//    file.open("./process" + std::to_string(i) + ".csv");
+//    file << cv::Formatter::get(cv::Formatter::FMT_CSV)->format(
+//        _netWork_ptr->neuron(_prev_neurons_idx[i])->processing()) << std::endl;
+//    file.close();
     _processing += Who(i) * _netWork_ptr->neuron(_prev_neurons_idx[i])->processing();
 //    LOG(ERROR) << "neuron_" << id() << " read from neuron_" << _prev_neurons_idx[i] << " size "
 //               << ",who size " << Who(i).size()
@@ -196,7 +200,7 @@ void Neuron::back_propogate(
     if (cross) {
       _Whos[i] += learning_rate *
                   error * (_netWork_ptr->neuron(_prev_neurons_idx[i])->processing()).t();
-      LOG(ERROR) << "cross";
+//      LOG(ERROR) << "cross";
     } else {
       _Whos[i] += learning_rate *
                   (error.mul(_processing)) * (_netWork_ptr->neuron(_prev_neurons_idx[i])->processing()).t();
