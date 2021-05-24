@@ -124,7 +124,7 @@ scalar query(const AiLearning::NetWorks &work) {
 }
 
 
-scalar query(AiLearning::MulNetWork &netWork) {
+std::pair<scalar, scalar> query(AiLearning::MulNetWork &netWork) {
   const std::string root = FLAGS_data + "/";
   const std::string data = FLAGS_test;
 
@@ -134,6 +134,7 @@ scalar query(AiLearning::MulNetWork &netWork) {
   cv::Mat input, target;
 
   int right = 0, wrong = 0;
+  scalar loss = 0;
 
   while (!file.eof()) {
     std::getline(file, line);
@@ -142,6 +143,7 @@ scalar query(AiLearning::MulNetWork &netWork) {
       const cv::Mat res = netWork.query(input);
       auto real = get_res(target);
       auto detect = get_res(res);
+      loss += cv::norm(target - res);
 
       LOG(INFO) << "[real, possiblity, detect, possiblity], [" << real.first
                  << "," << real.second << "," << detect.first << ","
@@ -162,7 +164,8 @@ scalar query(AiLearning::MulNetWork &netWork) {
 
   LOG(INFO) << "[right, wrong], [" << right << "," << wrong << "]="
              << right / (scalar)(right + wrong);
-  return right / (scalar)(right + wrong);
+  return std::pair<scalar, scalar>(
+      right / (scalar)(right + wrong), loss / (wrong + right));
 }
 
 
@@ -209,7 +212,7 @@ int main(int argc, char **argv) {
         }
       }
       file.close();
-      scalar rate = query(netWork);
+      std::pair<scalar, scalar> query_result = query(netWork);
 #if 0
       if (rate - last_rate < 0) {
         learning_rate = 0.1;
@@ -226,13 +229,14 @@ int main(int argc, char **argv) {
         best_epoch = e;
       }
       LOG(ERROR) << "epoch[" << e << "]:" << std::setprecision(8)
-                 << "accuracy," << rate
+                 << "accuracy," << query_result.first
+                 << ",query loss," << query_result.second
                  << ",learning rate," << learning_rate
                  << ",best epoch, " << best_epoch
                  << ",best loss, " << best_loss
                  << ",total loss," << loss
                  << ",dataset size," << train_size
-                 << ",average loss," << loss/train_size;
+                 << ",train loss," << loss/train_size;
       if (last_loss > 0 && last_loss < loss) {
         learning_rate *= 0.5;
       }

@@ -95,7 +95,8 @@ Neuron::Neuron(const NeuronConstructor& constructor) :
   _processing.create(_output_data_size, 1, CV_TYPE);
 
   if (constructor._Whos.empty()) {
-    LOG(ERROR) << "constructor input who empty, " << id();
+    LOG(ERROR) << "constructor input who empty, " << id()
+               << "," << _prev_neurons_idx.size();
     if (_prev_neurons_idx.empty()) {
       ///no prev neuron, the first one
       cv::Mat mat(_output_data_size,
@@ -186,7 +187,10 @@ void Neuron::back_propogate(
   const float learning_rate, const cv::Mat &error) {
   const size_t prev_num = num_prev();
   bool cross = false;
-  if (_next_neurons_idx.empty() && (_active == "Softmax" || _active == "Sigmoid")) {
+  const bool use_cross_entropy = false;
+  if (use_cross_entropy &&
+      _next_neurons_idx.empty()
+      && (_active == "Softmax" || _active == "Sigmoid")) {
     ///(Cross Entropy) & Softmax
     ///derivate (Tk - Ok) * Oj, Oj is the input from jth neuron of last level
     cross = true;
