@@ -186,7 +186,7 @@ void Neuron::back_propogate(
   const float learning_rate, const cv::Mat &error) {
   const size_t prev_num = num_prev();
   bool cross = false;
-  if (_next_neurons_idx.empty() && (_active == "Softmax")) {
+  if (_next_neurons_idx.empty() && (_active == "Softmax" || _active == "Sigmoid")) {
     ///(Cross Entropy) & Softmax
     ///derivate (Tk - Ok) * Oj, Oj is the input from jth neuron of last level
     cross = true;
