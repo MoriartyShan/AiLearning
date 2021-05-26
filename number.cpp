@@ -203,6 +203,7 @@ int main(int argc, char **argv) {
       CHECK(file.is_open()) << root + data << " open fail";
       std::string line;
       cv::Mat input, target;
+      netWork.reset_loss();
       while (!file.eof()) {
         std::getline(file, line);
         if (!line.empty()) {
@@ -212,6 +213,7 @@ int main(int argc, char **argv) {
         }
       }
       file.close();
+      netWork.update_learning_rate();
       std::pair<scalar, scalar> query_result = query(netWork);
 #if 0
       if (rate - last_rate < 0) {
@@ -240,8 +242,8 @@ int main(int argc, char **argv) {
       if (last_loss > 0 && last_loss < loss) {
         learning_rate *= 0.5;
       }
-      if (learning_rate < 0.000001) {
-        learning_rate = 0.000001;
+      if (learning_rate < 0.01) {
+        learning_rate = 0.01;
       }
       last_loss = loss;
       netWork.write(FLAGS_weight + "/weight_" + std::to_string(e) + ".yaml", true);

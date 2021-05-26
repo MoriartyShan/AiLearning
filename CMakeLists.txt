@@ -9,7 +9,11 @@ find_package(OpenCV REQUIRED)
 #find_package(Eigen3 REQUIRED)
 
 set(target_name "basic")
-add_library(${target_name} basic.cpp common.cpp neuron.cpp)
+add_library(${target_name}
+        basic.cpp
+        optimizer.cpp
+        common.cpp
+        neuron.cpp)
 
 target_link_libraries(${target_name}
         gflags
