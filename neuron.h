@@ -130,7 +130,7 @@ public:
       if (_learning_rate < 1e-6) {
         _learning_rate = 1e-6;
       }
-      LOG(ERROR) << "change neuron_" << id() << " learning rate to " << _learning_rate << ", " << _loss << ">" << _prev_loss;
+//      LOG(ERROR) << "change neuron_" << id() << " learning rate to " << _learning_rate << ", " << _loss << ">" << _prev_loss;
     }
     _prev_loss = _loss;
     reset_loss();

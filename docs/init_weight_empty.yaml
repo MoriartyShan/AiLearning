@@ -22,6 +22,6 @@ neuron_2:
    _next_neurons_idx: []
    _input_data_size: 100
    _output_data_size: 10
-   _active_func: Softmax
+   _active_func: Sigmoid
    _Whos:
       []
