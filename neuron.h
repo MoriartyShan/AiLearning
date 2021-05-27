@@ -51,7 +51,7 @@ private:
   const cv::Mat *_in;//only useful for the first neuron
 
   std::vector<cv::Mat> _Whos;
-  std::vector<Optimizer> _optimizers;
+  std::vector<OptimizerPtr> _optimizers;
   cv::Mat _processing;
 //  const size_t _input_data_size;//input data size
   const int _output_data_size;//output data size
@@ -61,9 +61,6 @@ private:
   const std::vector<int> _next_neurons_idx;
 
   const int _id;
-
-  double _learning_rate = 0.1;
-  double _loss, _prev_loss = -1;
 
   static int global_index() {
     static int idx = 0;
@@ -115,27 +112,6 @@ public:
   const cv::Mat &prev_error(const int i) const {
     return _prev_neurons_error.at(i);
   }
-
-  void update_loss(const double loss) {
-    _loss += loss;
-  }
-
-  void reset_loss() {
-    _loss = 0;
-  }
-
-  void update_learning_rate() {
-    if (_prev_loss > 0 && _loss > _prev_loss) {
-      _learning_rate *= 0.5;
-      if (_learning_rate < 1e-6) {
-        _learning_rate = 1e-6;
-      }
-//      LOG(ERROR) << "change neuron_" << id() << " learning rate to " << _learning_rate << ", " << _loss << ">" << _prev_loss;
-    }
-    _prev_loss = _loss;
-    reset_loss();
-  }
-
 };
 
 class MulNetWork {
@@ -157,19 +133,6 @@ public:
 
   const std::vector<NeuronPtr>& neurons() const {return _neurons;}
   const NeuronPtr& neuron(const int i) const {return _neurons[i];}
-
-  void reset_loss() {
-    for (auto &n : _neurons) {
-      n->reset_loss();
-    }
-  }
-
-  void update_learning_rate() {
-    for (auto &n : _neurons) {
-      n->update_learning_rate();
-    }
-  }
-
 };
 
 }

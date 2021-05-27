@@ -93,7 +93,7 @@ Neuron::Neuron(const NeuronConstructor& constructor) :
   set_active();
 
   _processing.create(_output_data_size, 1, CV_TYPE);
-
+  const std::string opt("Adam");
   if (constructor._Whos.empty()) {
     LOG(ERROR) << "constructor input who empty, " << id()
                << "," << _prev_neurons_idx.size();
@@ -103,7 +103,7 @@ Neuron::Neuron(const NeuronConstructor& constructor) :
                   constructor._input_data_size, CV_TYPE);
       Random(mat);
       _Whos.emplace_back(mat);
-      _optimizers.emplace_back();
+      _optimizers.emplace_back(Optimizer::create(opt));
     } else {
       _Whos.reserve(constructor._prev_neurons_idx.size());
       _optimizers.reserve(constructor._prev_neurons_idx.size());
@@ -112,7 +112,7 @@ Neuron::Neuron(const NeuronConstructor& constructor) :
                     _netWork_ptr->neuron(prev)->output_data_size(), CV_TYPE);
         Random(mat);
         _Whos.emplace_back(mat);
-        _optimizers.emplace_back();
+        _optimizers.emplace_back(Optimizer::create(opt));
       }
     }
 
@@ -125,7 +125,7 @@ Neuron::Neuron(const NeuronConstructor& constructor) :
       CHECK(Who.rows == output_data_size()) << "Who size = "
         << Who.rows << "," << Who.cols << "; node_num =" << output_data_size();
       _Whos.emplace_back(Who.clone());
-      _optimizers.emplace_back();
+      _optimizers.emplace_back(Optimizer::create(opt));
     }
   }
 
@@ -196,8 +196,6 @@ void Neuron::back_propogate(
   bool cross = false;
   const bool use_cross_entropy = true;
 
-  update_loss(cv::norm(error));
-
   if (use_cross_entropy &&
       _next_neurons_idx.empty()
       && (_active == "Softmax" || _active == "Sigmoid")) {
@@ -214,7 +212,8 @@ void Neuron::back_propogate(
 //    LOG(ERROR) << "update error of " << _prev_neurons_idx[i] << "-" << id();
     if (cross) {
 #if TEST_OPTIMIZER
-      _Whos[i] += _optimizers[i].UpdateParameter(error * (_netWork_ptr->neuron(_prev_neurons_idx[i])->processing()).t());
+      _Whos[i] += _optimizers[i]->UpdateParameter(
+        error, cv::Mat(), _netWork_ptr->neuron(_prev_neurons_idx[i])->processing());
 #else
       _Whos[i] += learning_rate *
                   error * (_netWork_ptr->neuron(_prev_neurons_idx[i])->processing()).t();
@@ -222,7 +221,8 @@ void Neuron::back_propogate(
 //      LOG(ERROR) << "cross";
     } else {
 #if TEST_OPTIMIZER
-      _Whos[i] += _optimizers[i].UpdateParameter((error.mul(_processing)) * (_netWork_ptr->neuron(_prev_neurons_idx[i])->processing()).t());
+      _Whos[i] += _optimizers[i]->UpdateParameter(
+        error,processing(), _netWork_ptr->neuron(_prev_neurons_idx[i])->processing());
 #else
       _Whos[i] += learning_rate *
                   (error.mul(_processing)) * (_netWork_ptr->neuron(_prev_neurons_idx[i])->processing()).t();
@@ -234,7 +234,7 @@ void Neuron::back_propogate(
   if (_in != nullptr) {
     CHECK(prev_num == 0) << prev_num << "," << id();
 #if TEST_OPTIMIZER
-    _Whos[0] += _optimizers[0].UpdateParameter(error.mul(_processing) * _in->t());
+    _Whos[0] += _optimizers[0]->UpdateParameter(error, processing(), *_in);
 #else
     _Whos[0] += learning_rate *
                 (error.mul(_processing)) * _in->t();

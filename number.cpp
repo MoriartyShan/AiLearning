@@ -15,20 +15,28 @@ DEFINE_double(learning_rate, 0.0001, "learning rate");
 
 using scalar = AiLearning::scalar;
 
-bool create_input(const std::string& line, cv::Mat& res, cv::Mat &target) {
+void create_std(std::vector<cv::Mat> &res) {
+  const int num = 10;
+  res.reserve(num);
+  for (int i = 0; i < num; i++) {
+    cv::Mat target(10, 1, CV_TYPE);
+    target = 0.0001;
+    target.at<scalar>(i, 0) = 0.9999;
+    res.emplace_back(target);
+  }
+}
+
+int create_input(const std::string& line, cv::Mat& res) {
   std::stringstream ss(line);
   res = cv::Mat(784, 1, CV_TYPE);
-  target = cv::Mat::zeros(10, 1, CV_TYPE);
+
   int cur;
   char comma;
 #define INSTREAM ss >> cur; ss >> comma;
 #define GIVE_VALUE(a) res.at<scalar>(a, 0) = (cur / 255.0) * 0.99 + 0.01;
   INSTREAM;
-  for (int i = 0; i < 10; i++) {
-    target.at<scalar>(i, 0) = 0.0001;
-  }
-  target.at<scalar>(cur, 0) = 0.9999;
 
+  int std = cur;
   for (int i = 0; i < 783; i++) {
     INSTREAM;
     GIVE_VALUE(i);
@@ -37,24 +45,26 @@ bool create_input(const std::string& line, cv::Mat& res, cv::Mat &target) {
   GIVE_VALUE(783);
   //LOG(ERROR) << target.t() << "\n" << res;
   //getchar();
-  return true;
+  return std;
 }
 
 AiLearning::NetWorks train(const int epoch = 5, AiLearning::NetWorks *input_work = nullptr) {
   const std::string root = FLAGS_data + "/";
   const std::string data = FLAGS_train;
   AiLearning::NetWorks work(784, 100, 10);
+  std::vector<cv::Mat> std_res;
+  create_std(std_res);
 
   for (int e = 0; e < epoch; e++) {
     std::ifstream file(root + data);
     CHECK(file.is_open()) << root + data << " open fail";
     std::string line;
-    cv::Mat input, target;
+    cv::Mat input;
     while (!file.eof()) {
       std::getline(file, line);
       if (!line.empty()) {
-        create_input(line, input, target);
-        work.train(input, target);
+        int number = create_input(line, input);
+        work.train(input, std_res[number]);
       }
     }
     file.close();
@@ -90,16 +100,18 @@ scalar query(const AiLearning::NetWorks &work) {
   std::ifstream file(root + data);
   CHECK(file.is_open()) << root + data << " open fail";
   std::string line;
-  cv::Mat input, target;
-
+  cv::Mat input;
+  std::vector<cv::Mat> std_res;
   int right = 0, wrong = 0;
+
+  create_std(std_res);
 
   while (!file.eof()) {
     std::getline(file, line);
     if (!line.empty()) {
-      create_input(line, input, target);
+      int number = create_input(line, input);
       cv::Mat res = work.query(input);
-      auto real = get_res(target);
+      auto real = get_res(std_res[number]);
       auto detect = get_res(res);
 
       LOG(INFO) << "[real, possiblity, detect, possiblity], [" << real.first
@@ -112,7 +124,7 @@ scalar query(const AiLearning::NetWorks &work) {
         wrong++;
       }
 
-      LOG(INFO) << "tar = " << target.t();
+      LOG(INFO) << "tar = " << std_res[number].t();
       LOG(INFO) << "res = " << res.t();
     }
   }
@@ -131,24 +143,27 @@ std::pair<scalar, scalar> query(AiLearning::MulNetWork &netWork) {
   std::ifstream file(root + data);
   CHECK(file.is_open()) << root + data << " open fail";
   std::string line;
-  cv::Mat input, target;
+  cv::Mat input;
 
   int right = 0, wrong = 0;
   scalar loss = 0;
+  std::vector<cv::Mat> std_res;
+  create_std(std_res);
 
   while (!file.eof()) {
     std::getline(file, line);
     if (!line.empty()) {
-      create_input(line, input, target);
+      int number = create_input(line, input);
       const cv::Mat res = netWork.query(input);
-      auto real = get_res(target);
+      std::pair<int, scalar> real = std::pair<int, scalar>(number, 0.999);
       auto detect = get_res(res);
-      loss += cv::norm(target - res);
+      loss += cv::norm(std_res[number] - res);
 
       LOG(INFO) << "[real, possiblity, detect, possiblity], [" << real.first
                  << "," << real.second << "," << detect.first << ","
                  << detect.second << "],"
-                 << (detect.first == real.first ? "right" : "wrong") << "," << cv::norm(res - target);
+                 << (detect.first == real.first ? "right" : "wrong") << ","
+                 << cv::norm(res - std_res[number]);
 
       if (real.first == detect.first) {
         right++;
@@ -156,7 +171,7 @@ std::pair<scalar, scalar> query(AiLearning::MulNetWork &netWork) {
         wrong++;
       }
 
-      LOG(INFO) << "tar = " << target.t();
+      LOG(INFO) << "tar = " << std_res[number].t();
       LOG(INFO) << "res = " << res.t();
     }
   }
@@ -196,55 +211,48 @@ int main(int argc, char **argv) {
     scalar learning_rate = FLAGS_learning_rate;
     int best_epoch = 0;
     scalar best_loss = -1;
+
+    std::vector<cv::Mat> std_res;
+    create_std(std_res);
     for (int e = 0; e < epoch; e++) {
       scalar loss = 0;
       int train_size = 0;
       std::ifstream file(root + data);
       CHECK(file.is_open()) << root + data << " open fail";
       std::string line;
-      cv::Mat input, target;
-      netWork.reset_loss();
+      cv::Mat input;
+
       while (!file.eof()) {
         std::getline(file, line);
         if (!line.empty()) {
-          create_input(line, input, target);
-          loss += netWork.train(input, target, learning_rate);
+          int number = create_input(line, input);
+          loss += netWork.train(input, std_res[number], learning_rate);
           train_size++;
         }
       }
       file.close();
-      netWork.update_learning_rate();
+
       std::pair<scalar, scalar> query_result = query(netWork);
-#if 0
-      if (rate - last_rate < 0) {
-        learning_rate = 0.1;
-      } else if (rate - last_rate < 0.01) {
-        learning_rate = 10.0 * (rate - last_rate);
-      } else if (rate - last_rate < 0.1) {
-        learning_rate = rate - last_rate;
-      } else {
-        learning_rate = 0.1;
-      }
-#endif
+      bool bad_condition = false;
       if (best_loss < 0 || loss < best_loss) {
         best_loss = loss;
         best_epoch = e;
       }
+
+      if (last_loss > 0 && last_loss < loss) {
+        bad_condition = true;
+      }
+
       LOG(ERROR) << "epoch[" << e << "]:" << std::setprecision(8)
                  << "accuracy," << query_result.first
                  << ",query loss," << query_result.second
-                 << ",learning rate," << learning_rate
                  << ",best epoch, " << best_epoch
                  << ",best loss, " << best_loss
                  << ",total loss," << loss
                  << ",dataset size," << train_size
-                 << ",train loss," << loss/train_size;
-      if (last_loss > 0 && last_loss < loss) {
-        learning_rate *= 0.5;
-      }
-      if (learning_rate < 0.01) {
-        learning_rate = 0.01;
-      }
+                 << ",train loss," << loss/train_size
+                 << "," << (bad_condition ? "bad" : "good");
+
       last_loss = loss;
       netWork.write(FLAGS_weight + "/weight_" + std::to_string(e) + ".yaml", true);
     }
