@@ -58,7 +58,7 @@ private:
   const std::vector<int> _prev_neurons_idx;
   std::map<int, cv::Mat> _prev_neurons_error; //neuron index, error
 
-  const std::vector<int> _next_neurons_idx;
+  std::vector<int> _next_neurons_idx;
 
   const int _id;
 
@@ -109,9 +109,16 @@ public:
     return _active;
   };
 
+  void regist_next_neuron(const int i);
+
+  bool is_next_neuron(const int i) const;
+
   const cv::Mat &prev_error(const int i) const {
     return _prev_neurons_error.at(i);
   }
+
+  bool is_prev_neuron(const int i) const;
+  bool check_consistency() const;
 };
 
 class MulNetWork {
@@ -133,6 +140,8 @@ public:
 
   const std::vector<NeuronPtr>& neurons() const {return _neurons;}
   const NeuronPtr& neuron(const int i) const {return _neurons[i];}
+  NeuronPtr& neuron(const int i) {return _neurons[i];}
+  bool check_consistency() const;
 };
 
 }

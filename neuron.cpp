@@ -33,6 +33,8 @@ bool NeuronConstructor::read(cv::FileStorage &fs, const int id) {
   node["_output_data_size"] >> _output_data_size;
   node["_active_func"] >> _active_func;
 
+  std::sort(_prev_neurons_idx.begin(), _prev_neurons_idx.end());
+  std::sort(_next_neurons_idx.begin(), _next_neurons_idx.end());
 //  LOG(ERROR) << "read Who " << _Whos.size() << "," << _Whos[0].size();
 
   return true;
@@ -65,20 +67,20 @@ bool NeuronConstructor::check_data() const {
                  << prev_neurons_num << "," << _Whos.size();
       return false;
     }
-//    for (size_t i = 0; i < prev_neurons_num; i++) {
-//      if (_Whos[i].rows != _node_num) {
-//        LOG(ERROR) << "Who[" << i << "] row number should be equal to _node_num "
-//                   << _Whos[i].size() << "," << _node_num;
-//        return false;
-//      }
-//
-//      if (_Whos[i].cols != _netWork_ptr->neuron(_prev_neurons_idx[i])->node_num()) {
-//        LOG(ERROR) << "Who[" << i << "] row number should be equal to previous neuron's _node_num "
-//                   << _Whos[i].size() << "," << _prev_neurons_idx[i] << ","
-//                   << _netWork_ptr->neuron(_prev_neurons_idx[i])->node_num();
-//        return false;
-//      }
-//    }
+    for (size_t i = 0; i < prev_neurons_num; i++) {
+      if (_Whos[i].rows != _output_data_size) {
+        LOG(ERROR) << "Who[" << i << "] row number should be equal to _node_num "
+                   << _Whos[i].size() << "," << _output_data_size;
+        return false;
+      }
+
+      if (_Whos[i].cols != _netWork_ptr->neuron(_prev_neurons_idx[i])->output_data_size()) {
+        LOG(ERROR) << "Who[" << i << "] row number should be equal to previous neuron's _node_num "
+                   << _Whos[i].size() << "," << _prev_neurons_idx[i] << ","
+                   << _netWork_ptr->neuron(_prev_neurons_idx[i])->output_data_size();
+        return false;
+      }
+    }
   }
 }
 
@@ -89,6 +91,8 @@ Neuron::Neuron(const NeuronConstructor& constructor) :
     _netWork_ptr(constructor._netWork_ptr),
     _output_data_size(constructor._output_data_size),
     _next_neurons_idx(constructor._next_neurons_idx){
+
+  std::sort(_next_neurons_idx.begin(), _next_neurons_idx.end());
 
   set_active();
 
@@ -132,6 +136,7 @@ Neuron::Neuron(const NeuronConstructor& constructor) :
   if (!_prev_neurons_idx.empty()) {
     for (auto prev : _prev_neurons_idx) {
       _prev_neurons_error.emplace(prev, cv::Mat());
+      _netWork_ptr->neuron(prev)->regist_next_neuron(id());
     }
   }
 
@@ -256,6 +261,86 @@ void Neuron::back_propogate(const float learning_rate) {
   return;
 }
 
+void Neuron::regist_next_neuron(const int i) {
+  if (!is_next_neuron(i)) {
+    _next_neurons_idx.emplace_back(i);
+    std::sort(_next_neurons_idx.begin(), _next_neurons_idx.end());
+  }
+};
+
+bool Neuron::is_next_neuron(const int i) const {
+  for (auto &id : _next_neurons_idx) {
+    if (i == id) {
+      return true;
+    }
+  }
+  return false;
+};
+
+bool Neuron::is_prev_neuron(const int i) const {
+  for (auto &id : _prev_neurons_idx) {
+    if (i == id) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Neuron::check_consistency() const {
+  if (_Whos.size() != _optimizers.size()) {
+    LOG(ERROR) << "Neuron_" << id() << " who and optimzer size dismatch ("
+               << _Whos.size() << "," << _optimizers.size() << ")";
+    return false;
+  }
+
+  if (_Whos.size() != _prev_neurons_idx.size()) {
+    LOG(ERROR) << "Neuron_" << id() << " who and _prev_neurons_idx size dismatch ("
+               << _Whos.size() << "," << _prev_neurons_idx.size() << ")";
+    return false;
+  }
+
+  if (_Whos.size() != _prev_neurons_error.size()) {
+    LOG(ERROR) << "Neuron_" << id() << " who and _prev_neurons_error size dismatch ("
+               << _Whos.size() << "," << _prev_neurons_error.size() << ")";
+    return false;
+  }
+
+  const size_t prev_size = _Whos.size();
+  for (size_t i = 0; i < prev_size; i++) {
+    const cv::Size who_size = Who(i).size();
+    auto &prev_neuron = _netWork_ptr->neuron(_prev_neurons_idx[i]);
+    if (who_size.width != prev_neuron->output_data_size()) {
+      LOG(ERROR) << "Neuron_" << id() << " who[" << i
+                 << "] size dismatch with Neuron_" << _prev_neurons_idx[i]
+                 << " output size(" << who_size.width << ","
+                 << prev_neuron->output_data_size();
+      return false;
+    }
+
+    if (who_size.height != output_data_size()) {
+      LOG(ERROR) << "Neuron_" << id() << " who[" << i
+                 << "] size dismatch with output " << who_size.height << ","
+                 << output_data_size();
+      return false;
+    }
+
+    if (!prev_neuron->is_next_neuron(id())) {
+      LOG(ERROR) << "Neuron_" << id() << " is not the next neuron of Neuron_" << prev_neuron->id();
+      return false;
+    }
+  }
+
+  const size_t next_size = _next_neurons_idx.size();
+  for (size_t i = 0; i < next_size; i++) {
+    if (!(_netWork_ptr->neuron(_next_neurons_idx[i])->is_prev_neuron(id()))) {
+      LOG(ERROR) << "Neuron_" << id() << " is not in the list of Neuron_"
+                 << _next_neurons_idx[i] << "'s prev neurons";
+      return false;
+    }
+  }
+
+  return true;
+}
 
 MulNetWork::MulNetWork(const std::vector<NeuronConstructor> &constructors) {
   const size_t size = constructors.size();
@@ -263,6 +348,7 @@ MulNetWork::MulNetWork(const std::vector<NeuronConstructor> &constructors) {
     _neurons.emplace_back(std::make_shared<Neuron>(constructors[i]));
     CHECK(_neurons.back()->id() == i) << _neurons.back()->id() << "," << i;
   }
+  CHECK(check_consistency());
 }
 
 const cv::Mat& MulNetWork::query(const cv::Mat &in) {
@@ -319,5 +405,21 @@ void MulNetWork::read(const std::string &path) {
   }
   return;
 }
+bool MulNetWork::check_consistency() const {
+  const size_t size = neurons_num();
+  for (size_t i = 0; i < size; i++) {
+    auto n = neuron(i);
+    if (n->id() != i) {
+      LOG(ERROR) << "neuron_" << n->id() << " at wrong position " << i << "," << size;
+      return false;
+    }
+    if (!n->check_consistency()) {
+      LOG(ERROR) << "Neuron_" << n->id() << " check fail";
+      return false;
+    }
+  }
+  for (auto &n : neurons()) {
 
+  }
+}
 }//namespace AiLearning
