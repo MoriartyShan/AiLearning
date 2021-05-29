@@ -6,6 +6,8 @@
 #include "common.h"
 #include <glog/logging.h>
 #include <gflags/gflags.h>
+#include <fstream>
+
 DEFINE_string(data, "", "path to tran and test data");
 DEFINE_string(train, "", "train data name");
 DEFINE_string(test, "", "test data name");

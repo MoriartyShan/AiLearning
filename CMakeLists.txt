@@ -5,7 +5,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 find_package(glog REQUIRED)
 find_package(gflags REQUIRED)
-find_package(OpenCV REQUIRED)
+find_package(OpenCV REQUIRED core cudaarithm)
 #find_package(Eigen3 REQUIRED)
 
 set(target_name "basic")
@@ -18,7 +18,7 @@ add_library(${target_name}
 target_link_libraries(${target_name}
         gflags
         glog::glog
-        ${OpenCV_LIBS}
+        opencv_core
         )
 
 set(target_name "number")
@@ -37,3 +37,19 @@ add_executable(${target_name}
 target_link_libraries(${target_name}
         basic
         )
+
+find_package(benchmark)
+if(benchmark_FOUND)
+    set(target_name "benchmark_test")
+    add_executable(${target_name}
+            benchmark_test.cpp)
+
+    target_link_libraries(${target_name}
+            benchmark::benchmark
+            opencv_cudaarithm
+            )
+else()
+    message(STATUS "benchmark not found")
+endif()
+
+
