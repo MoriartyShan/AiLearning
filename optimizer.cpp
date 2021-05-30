@@ -2,6 +2,7 @@
 // Created by moriarty on 5/26/21.
 //
 #include "optimizer.h"
+#include "timer.h"
 #include <glog/logging.h>
 
 namespace AiLearning {
@@ -37,6 +38,8 @@ private:
   Matrix _output, _tmp;
 
   const Matrix& UpdateParameter(const Matrix &gt) {
+    MicrosecondTimer timer(__func__ );
+    timer.begin();
     if (_mt[0].empty() || _vt[0].empty()) {
       gt.copyTo(_mt[0]);
       gt.copyTo(_vt[0]);
@@ -58,6 +61,7 @@ private:
     cv::cuda::add(_sqrt_vt, _e, _sqrt_vt);
     cu_multiply(alphat, _mt[update], _mt[update]);
     cv::cuda::divide(_mt[update], _sqrt_vt, _output, 1, -1, cu_stream);
+    timer.end();
     return _output;
   }
 

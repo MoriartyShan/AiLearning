@@ -5,7 +5,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/cudaarithm.hpp>
 
-const int rows = 8192, cols = 1103;
+const int rows = 784, cols = 100;
 const double alpha = 11.3, belta = 1.5;
 
 #define LOG std::cout << __FILE__ << ":" << __LINE__ << ": " << time(0) << ","
@@ -80,8 +80,8 @@ static void cpumul(benchmark::State& state) {
 }
 
 static void cpumulmatrix(benchmark::State& state) {
-  cv::Mat m1(rows, cols, CV_64FC1), m2(cols, rows, CV_64FC1);
-  cv::Mat m3(rows, rows, CV_64FC1), m4(rows, rows, CV_64FC1);
+  cv::Mat m1(rows, cols, CV_64FC1), m2(cols, 1, CV_64FC1);
+  cv::Mat m3(rows, 1, CV_64FC1), m4(rows, 1, CV_64FC1);
   cv::randu(m1, -100, 100);
   cv::randu(m2, -100, 100);
   cv::randu(m3, -100, 100);
@@ -99,11 +99,11 @@ static void gpugemm(benchmark::State& state) {
   cv::randu(tmp, -100, 100);
   m1.upload(tmp);
 
-  tmp.create(cols, rows,CV_64FC1);
+  tmp.create(cols, 1,CV_64FC1);
   cv::randu(tmp, -100, 100);
   m2.upload(tmp);
 
-  tmp.create(rows, rows,CV_64FC1);
+  tmp.create(rows, 1,CV_64FC1);
   cv::randu(tmp, -100, 100);
   m3.upload(tmp);
 

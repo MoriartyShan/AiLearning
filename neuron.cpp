@@ -3,6 +3,7 @@
 //
 #include "neuron.h"
 #include "common.h"
+#include "timer.h"
 
 namespace AiLearning{
 
@@ -163,47 +164,47 @@ void Neuron::constructor(NeuronConstructor &c) const {
 }
 
 void Neuron::query(const Matrix &in){
+  MicrosecondTimer timer(__func__);
+  timer.begin();
   _in = &in;
   cv::cuda::gemm(Who(0), in, 1, Matrix(), 0, _processing, 0, cu_stream);
 
   CHECK(check(processing())) << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
   _active_func(_processing);
   CHECK(check(processing())) << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
+  timer.end();
 //  LOG(ERROR) << "neuron_" << id() << " output " << _processing.size();
   return;
 }
 
 void Neuron::query() {
+  MicrosecondTimer timer(__func__), timer1;
+  timer.begin();
   const size_t prev_num = num_prev();
   _in = nullptr;
+  timer1.begin("setto 0");
   _processing.setTo(0);
+  timer1.end();
   CHECK(check(processing())) << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
   for (size_t i = 0; i < prev_num; i++) {
-//    LOG(INFO) << "who:\n" << Who(i);
-//    std::ofstream file("./who" + std::to_string(i) + ".csv");
-//    file << cv::Formatter::get(cv::Formatter::FMT_CSV)->format(Who(i)) << std::endl;
-//    file.close();
-//    file.open("./process" + std::to_string(i) + ".csv");
-//    file << cv::Formatter::get(cv::Formatter::FMT_CSV)->format(
-//        _netWork_ptr->neuron(_prev_neurons_idx[i])->processing()) << std::endl;
-//    file.close();
+    timer1.begin("gemm");
     cv::cuda::gemm(Who(i), _netWork_ptr->neuron(_prev_neurons_idx[i])->processing(), 1, _processing, 1, _tmp, 0, cu_stream);
+    timer1.end();
+    timer1.begin("copyTo");
     _tmp.copyTo(_processing);
-
-//    LOG(ERROR) << "neuron_" << id() << " read from neuron_" << _prev_neurons_idx[i] << " size "
-//               << ",who size " << Who(i).size()
-//               << _netWork_ptr->neuron(_prev_neurons_idx[i])->processing().size();
-//    LOG(ERROR) << "update neuron output " << id() << "," << _prev_neurons_idx[i];
+    timer1.end();
   }
   CHECK(check(processing())) << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
   _active_func(_processing);
-//  LOG(ERROR) << "neuron_" << id() << " output " << _processing.size();
   CHECK(check(processing())) << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
+  timer.end();
   return;
 }
 
 void Neuron::back_propogate(
   const float learning_rate, const Matrix &error) {
+  MicrosecondTimer timer(__func__), timer1;
+  timer.begin();
   const size_t prev_num = num_prev();
   bool cross = false;
   const bool use_cross_entropy = true;
@@ -221,10 +222,13 @@ void Neuron::back_propogate(
   CHECK(check(processing())) << "neuron_" << id() << ",_process "
       << cv::Mat(processing()).t() << "," << id();
   for (size_t i = 0; i < prev_num; i++) {
+    timer1.begin("gemm back");
     cv::cuda::gemm(
         Who(i), error, 1.0, cv::noArray(), 0,
         _prev_neurons_error.at(_prev_neurons_idx[i]),
         cv::GEMM_1_T, cu_stream);
+    timer1.end();
+    timer1.begin("update who");
     if (cross) {
 #if TEST_OPTIMIZER
       cv::cuda::add(
@@ -249,9 +253,11 @@ void Neuron::back_propogate(
                   (error.mul(_processing)) * (_netWork_ptr->neuron(_prev_neurons_idx[i])->processing()).t();
 #endif
     }
+    timer1.end();
     CHECK(check(Who(i))) << "neuron_" << id() << ",Who(" << i << ")" << cv::Mat(processing()).t();
   }
   if (_in != nullptr) {
+    timer1.begin("update who0");
     CHECK(prev_num == 0) << prev_num << "," << id();
 #if TEST_OPTIMIZER
     cv::cuda::add(
@@ -265,11 +271,15 @@ void Neuron::back_propogate(
 #endif
 //    LOG(ERROR) << "update who of the first one";
     CHECK(check(Who(0))) << "neuron_" << id() << ",Who 0 " << cv::Mat(processing()).t();
+    timer1.end();
   }
+  timer.end();
   return;
 }
 
 void Neuron::back_propogate(const float learning_rate) {
+  MicrosecondTimer timer(__func__);
+  timer.begin();
   if (_error.empty()) {
     _error.create(output_data_size(), 1, CV_TYPE);
   }
@@ -280,6 +290,7 @@ void Neuron::back_propogate(const float learning_rate) {
         _error, cv::noArray(), -1, cu_stream);
   }
   back_propogate(learning_rate, _error);
+  timer.end();
   return;
 }
 
@@ -374,16 +385,21 @@ MulNetWork::MulNetWork(const std::vector<NeuronConstructor> &constructors) {
 }
 
 const Matrix& MulNetWork::query(const Matrix &in) {
+  MicrosecondTimer timer(__func__);
+  timer.begin();
   neuron(0)->query(in);
   for (size_t i = 1; i < neurons_num(); i++) {
     neuron(i)->query();
   }
+  timer.end();
   return neurons().back()->processing();
 }
 
 scalar MulNetWork::train(const Matrix &in, const Matrix &target, const float learning_rate) {
-  Matrix _last_error;
-  cv::cuda::subtract(target, query(in), _last_error, cv::noArray(), -1, cu_stream);
+  MicrosecondTimer timer(__func__);
+  timer.begin();
+  auto &query_result = query(in);
+  cv::cuda::subtract(target, query_result, _last_error, cv::noArray(), -1, cu_stream);
   double loss = cv::cuda::norm(_last_error, cv::NORM_L2);
 //  LOG(INFO) << "loss = " << loss << "," << cur_error.t();
   auto neuron = neurons().rbegin();
@@ -391,7 +407,7 @@ scalar MulNetWork::train(const Matrix &in, const Matrix &target, const float lea
   for (neuron++; neuron != neurons().rend(); neuron++) {
     (*neuron)->back_propogate(learning_rate);
   }
-
+  timer.end();
   return loss;
 }
 

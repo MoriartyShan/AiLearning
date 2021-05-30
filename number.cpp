@@ -178,7 +178,7 @@ std::pair<scalar, scalar> query(AiLearning::MulNetWork &netWork) {
       int number = create_input(line, input);
       const AiLearning::Matrix &res = netWork.query(input);
       std::pair<int, scalar> real = std::pair<int, scalar>(number, 0.999);
-      auto detect = get_res(res);
+      auto detect = get_res(cv::Mat(res));
       double this_loss = cv::norm(cv::Mat(std_res[number]) - cv::Mat(res));
       loss += this_loss;
 
@@ -251,7 +251,11 @@ int main(int argc, char **argv) {
           int number = create_input(line, input);
           loss += netWork.train(input, std_res[number], learning_rate);
           train_size++;
+
         }
+//        if (train_size % 1000 == 1) {
+//          LOG(ERROR) << "trained data " << train_size;
+//        }
       }
       file.close();
 

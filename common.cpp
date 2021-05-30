@@ -2,6 +2,7 @@
 // Created by moriarty on 2021/5/16.
 //
 #include "common.h"
+#include "timer.h"
 #include <glog/logging.h>
 
 #define RAND8BIT() (((uint32_t)rand()) & 0xff)
@@ -114,6 +115,7 @@ bool check(T *data, const int size) {
 }
 
 bool check(const Matrix &matrix) {
+  return  true;
 #if 1
   return cv::checkRange(cv::Mat(matrix));
 #else
@@ -159,19 +161,25 @@ void Sigmoid(cv::Mat &matrix) {
 }
 
 void Sigmoid(cv::cuda::GpuMat &matrix){
-  cv::Mat tmp(matrix);
-  Sigmoid(tmp);
-  matrix.upload(tmp);
+  MicrosecondTimer timer(__func__);
+  timer.begin();
+  static cv::cuda::GpuMat tmp;
+  cv::cuda::exp(matrix, matrix, cu_stream);
+  cv::cuda::add(1, matrix, tmp, cv::noArray(), -1, cu_stream);
+  cv::cuda::divide(matrix, tmp, matrix, 1, -1, cu_stream);
+  timer.end();
 }
 
 void derivativesSigmoid(Matrix &matrix) {
 #ifdef CPU_MODE
   matrix = matrix.mul(1 - matrix);
 #elif defined(GPU_MODE)
-  static Matrix tmp1, tmp2;
+  MicrosecondTimer timer(__func__);
+  timer.begin();
+  static Matrix tmp1;
   cv::cuda::subtract(1, matrix, tmp1, cv::noArray(), -1, cu_stream);
-  cu_multiply(matrix, tmp1, tmp2);
-  tmp2.copyTo(matrix);
+  cu_multiply(matrix, tmp1, matrix);
+  timer.end();
 #endif
 }
 
