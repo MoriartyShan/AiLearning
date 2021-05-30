@@ -17,25 +17,26 @@ DEFINE_double(learning_rate, 0.0001, "learning rate");
 
 using scalar = AiLearning::scalar;
 
-void create_std(std::vector<cv::Mat> &res) {
+void create_std(std::vector<AiLearning::Matrix> &res) {
   const int num = 10;
   res.reserve(num);
   for (int i = 0; i < num; i++) {
     cv::Mat target(10, 1, CV_TYPE);
-    target = 0.0001;
-    target.at<scalar>(i, 0) = 0.9999;
+    target.setTo(0.0001);
+    (*target.ptr<scalar>(i)) = 0.9999;
     res.emplace_back(target);
+    LOG(ERROR) << "target [" << i << "] = " << cv::Mat(target).t();
   }
 }
 
-int create_input(const std::string& line, cv::Mat& res) {
+int create_input(const std::string& line, AiLearning::Matrix& _res) {
   std::stringstream ss(line);
-  res = cv::Mat(784, 1, CV_TYPE);
-
+  cv::Mat res(784, 1, CV_TYPE);
+  scalar *data = (scalar *)res.data;
   int cur;
   char comma;
 #define INSTREAM ss >> cur; ss >> comma;
-#define GIVE_VALUE(a) res.at<scalar>(a, 0) = (cur / 255.0) * 0.99 + 0.01;
+#define GIVE_VALUE(a) data[a] = (cur / 255.0) * 0.99 + 0.01;
   INSTREAM;
 
   int std = cur;
@@ -47,6 +48,7 @@ int create_input(const std::string& line, cv::Mat& res) {
   GIVE_VALUE(783);
   //LOG(ERROR) << target.t() << "\n" << res;
   //getchar();
+  _res.upload(res);
   return std;
 }
 
@@ -55,18 +57,27 @@ AiLearning::NetWorks train(const int epoch = 5, AiLearning::NetWorks *input_work
   const std::string data = FLAGS_train;
   AiLearning::NetWorks work(784, 100, 10);
   std::vector<cv::Mat> std_res;
-  create_std(std_res);
+  {
+    std::vector<AiLearning::Matrix> std_res_;
+    create_std(std_res_);
+    for (auto &m : std_res_) {
+      std_res.emplace_back(m);
+    }
+  }
+
 
   for (int e = 0; e < epoch; e++) {
     std::ifstream file(root + data);
     CHECK(file.is_open()) << root + data << " open fail";
     std::string line;
-    cv::Mat input;
+    AiLearning::Matrix input;
+    cv::Mat input_cpu;
     while (!file.eof()) {
       std::getline(file, line);
       if (!line.empty()) {
         int number = create_input(line, input);
-        work.train(input, std_res[number]);
+        input.download(input_cpu);
+        work.train(input_cpu, std_res[number]);
       }
     }
     file.close();
@@ -75,17 +86,18 @@ AiLearning::NetWorks train(const int epoch = 5, AiLearning::NetWorks *input_work
   work.write_work(root + "/weight.yaml");
   return work;
 }
-
-std::pair<int, scalar> get_res(const cv::Mat& res) {
+template<typename _Matrix>
+std::pair<int, scalar> get_res(const _Matrix& res) {
   const int row = 10;
-  CHECK(res.cols == 1 && res.rows == row) << res;
+  CHECK(res.cols == 1 && res.rows == row) << cv::Mat(res).t();
   CHECK(res.type() == CV_TYPE);
+  const scalar *data = (scalar *)res.data;
   double all = 0;
-  double max = res.at<scalar>(0, 0);
+  double max = data[0];
   int max_index = 0;
 
   for (int i = 0; i < row; i++) {
-    const scalar cur = res.at<scalar>(i, 0);
+    const scalar cur = data[i];
     all += cur;
     if (cur > max) {
       max = cur;
@@ -103,15 +115,23 @@ scalar query(const AiLearning::NetWorks &work) {
   CHECK(file.is_open()) << root + data << " open fail";
   std::string line;
   cv::Mat input;
+  AiLearning::Matrix input_;
   std::vector<cv::Mat> std_res;
   int right = 0, wrong = 0;
 
-  create_std(std_res);
+  {
+    std::vector<AiLearning::Matrix> std_res_;
+    create_std(std_res_);
+    for (auto &m : std_res_) {
+      std_res.emplace_back(m);
+    }
+  }
 
   while (!file.eof()) {
     std::getline(file, line);
     if (!line.empty()) {
-      int number = create_input(line, input);
+      int number = create_input(line, input_);
+      input_.download(input);
       cv::Mat res = work.query(input);
       auto real = get_res(std_res[number]);
       auto detect = get_res(res);
@@ -145,27 +165,28 @@ std::pair<scalar, scalar> query(AiLearning::MulNetWork &netWork) {
   std::ifstream file(root + data);
   CHECK(file.is_open()) << root + data << " open fail";
   std::string line;
-  cv::Mat input;
+  AiLearning::Matrix input;
 
   int right = 0, wrong = 0;
   scalar loss = 0;
-  std::vector<cv::Mat> std_res;
+  std::vector<AiLearning::Matrix> std_res;
   create_std(std_res);
 
   while (!file.eof()) {
     std::getline(file, line);
     if (!line.empty()) {
       int number = create_input(line, input);
-      const cv::Mat res = netWork.query(input);
+      const AiLearning::Matrix &res = netWork.query(input);
       std::pair<int, scalar> real = std::pair<int, scalar>(number, 0.999);
       auto detect = get_res(res);
-      loss += cv::norm(std_res[number] - res);
+      double this_loss = cv::norm(cv::Mat(std_res[number]) - cv::Mat(res));
+      loss += this_loss;
 
       LOG(INFO) << "[real, possiblity, detect, possiblity], [" << real.first
                  << "," << real.second << "," << detect.first << ","
                  << detect.second << "],"
                  << (detect.first == real.first ? "right" : "wrong") << ","
-                 << cv::norm(res - std_res[number]);
+                 << this_loss;
 
       if (real.first == detect.first) {
         right++;
@@ -173,8 +194,8 @@ std::pair<scalar, scalar> query(AiLearning::MulNetWork &netWork) {
         wrong++;
       }
 
-      LOG(INFO) << "tar = " << std_res[number].t();
-      LOG(INFO) << "res = " << res.t();
+      LOG(INFO) << "tar = " << cv::Mat(std_res[number]).t();
+      LOG(INFO) << "res = " << cv::Mat(res).t();
     }
   }
   file.close();
@@ -214,7 +235,7 @@ int main(int argc, char **argv) {
     int best_epoch = 0;
     scalar best_loss = -1;
 
-    std::vector<cv::Mat> std_res;
+    std::vector<AiLearning::Matrix> std_res;
     create_std(std_res);
     for (int e = 0; e < epoch; e++) {
       scalar loss = 0;
@@ -222,7 +243,7 @@ int main(int argc, char **argv) {
       std::ifstream file(root + data);
       CHECK(file.is_open()) << root + data << " open fail";
       std::string line;
-      cv::Mat input;
+      AiLearning::Matrix input;
 
       while (!file.eof()) {
         std::getline(file, line);

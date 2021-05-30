@@ -23,8 +23,8 @@ public:
     read_work(path);
   }
   NetWorks(const MulNetWork &mul) {
-    _Wih = mul.neuron(0)->Who(0).clone();
-    _Who = mul.neuron(1)->Who(0).clone();
+    _Wih = cv::Mat(mul.neuron(0)->Who(0).clone());
+    _Who = cv::Mat(mul.neuron(1)->Who(0).clone());
   }
 
   NetWorks(const int inode, const int hnode, const int onode);

@@ -21,7 +21,7 @@ double min(T *data, const int size) {
   return min;
 }
 
-double min(cv::Mat &matrix) {
+double min(AiLearning::Matrix &matrix) {
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     return min<float>((float *) matrix.data, matrix.cols * matrix.rows);
@@ -44,7 +44,7 @@ double max(T *data, const int size) {
   return max;
 }
 
-double max(cv::Mat &matrix) {
+double max(AiLearning::Matrix &matrix) {
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     return max<float>((float *) matrix.data, matrix.cols * matrix.rows);
@@ -59,21 +59,45 @@ double max(cv::Mat &matrix) {
 }
 
 namespace AiLearning {
+#ifdef GPU_MODE
+cv::cuda::Stream cu_stream;
+#endif
+
+template<typename T>
+void Random(T *data, const int size) {
+  for (int i = 0; i < size; i++) {
+    data[i] = RANDOM(-0.999, 0.999);
+  }
+}
+
+void Random(cv::cuda::GpuMat &matrix) {
+  CHECK(matrix.type() == CV_TYPE);
+#ifdef CPU_MODE
+  cv::randu(matrix, -0.9999, 0.9999);
+#else
+  CHECK(matrix.isContinuous());
+  if (matrix.type() == CV_32FC1) {
+    return Random<float>((float *) matrix.data, matrix.cols * matrix.rows);
+  } else if (matrix.type() == CV_64FC1) {
+    return Random<double>((double *) matrix.data, matrix.cols * matrix.rows);
+  } else {
+    LOG(FATAL) << "Not implemented " << matrix.type();
+  }
+#endif
+}
+
 void Random(cv::Mat &matrix) {
   CHECK(matrix.type() == CV_TYPE);
-#if 1
+#ifdef CPU_MODE
   cv::randu(matrix, -0.9999, 0.9999);
-//  LOG(ERROR) << matrix.at<scalar>(0, 0);
-//  for (int i = 0; i < matrix.rows; i++) {
-//    for (int j = 0; j < matrix.cols; j++) {
-//      CHECK(matrix.at<scalar>(i, j) > -0.9999 && matrix.at<scalar>(i, j) < 0.9999) << matrix.at<scalar>(i, j);
-//    }
-//  }
 #else
-  for (int i = 0; i < matrix.rows; i++) {
-    for (int j = 0; j < matrix.cols; j++) {
-      matrix.at<scalar>(i, j) = RANDOM(-0.999, 0.999);
-    }
+  CHECK(matrix.isContinuous());
+  if (matrix.type() == CV_32FC1) {
+    return Random<float>((float *) matrix.data, matrix.cols * matrix.rows);
+  } else if (matrix.type() == CV_64FC1) {
+    return Random<double>((double *) matrix.data, matrix.cols * matrix.rows);
+  } else {
+    LOG(FATAL) << "Not implemented " << matrix.type();
   }
 #endif
 }
@@ -89,9 +113,9 @@ bool check(T *data, const int size) {
   return true;
 }
 
-bool check(const cv::Mat &matrix) {
+bool check(const Matrix &matrix) {
 #if 1
-  return cv::checkRange(matrix);
+  return cv::checkRange(cv::Mat(matrix));
 #else
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
@@ -119,7 +143,7 @@ void Sigmoid(T *data, const int size) {
 
 void Sigmoid(cv::Mat &matrix) {
 #if 0
-  cv::Mat tmp = -matrix;
+  Matrix tmp = -matrix;
   cv::exp(tmp, matrix);
   matrix = 1 / (matrix + 1);
 #else
@@ -134,8 +158,21 @@ void Sigmoid(cv::Mat &matrix) {
 #endif
 }
 
-void derivativesSigmoid(cv::Mat &matrix) {
+void Sigmoid(cv::cuda::GpuMat &matrix){
+  cv::Mat tmp(matrix);
+  Sigmoid(tmp);
+  matrix.upload(tmp);
+}
+
+void derivativesSigmoid(Matrix &matrix) {
+#ifdef CPU_MODE
   matrix = matrix.mul(1 - matrix);
+#elif defined(GPU_MODE)
+  static Matrix tmp1, tmp2;
+  cv::cuda::subtract(1, matrix, tmp1, cv::noArray(), -1, cu_stream);
+  cu_multiply(matrix, tmp1, tmp2);
+  tmp2.copyTo(matrix);
+#endif
 }
 
 #define ELU_COEF 1.0
@@ -148,7 +185,7 @@ void ELU(T *data, const int size) {
   }
 }
 
-void ELU(cv::Mat &matrix) {
+void ELU(Matrix &matrix) {
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     ELU<float>((float *) matrix.data, matrix.cols * matrix.rows);
@@ -172,7 +209,7 @@ void derivativesELU(T *data, const int size) {
   }
 }
 
-void derivativesELU(cv::Mat &matrix) {
+void derivativesELU(Matrix &matrix) {
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     derivativesELU<float>((float *) matrix.data, matrix.cols * matrix.rows);
@@ -195,7 +232,7 @@ void derivativesRELU(T *data, const int size) {
 }
 
 
-void derivativesRELU(cv::Mat &matrix) {
+void derivativesRELU(Matrix &matrix) {
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     derivativesRELU<float>((float *) matrix.data, matrix.cols * matrix.rows);
@@ -215,7 +252,7 @@ void RELU(T *data, const int size) {
   }
 }
 
-void RELU(cv::Mat &matrix) {
+void RELU(Matrix &matrix) {
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     RELU<float>((float *) matrix.data, matrix.cols * matrix.rows);
@@ -226,24 +263,48 @@ void RELU(cv::Mat &matrix) {
   }
 }
 
-void derivativesSoftmax(cv::Mat &matrix) {
-  matrix = matrix - matrix.mul(matrix);
-  return;
+void derivativesSoftmax(Matrix &matrix) {
+#ifdef CPU_MODE
+  matrix = matrix.mul(1 - matrix);
+#elif defined(GPU_MODE)
+  static Matrix tmp1, tmp2;
+  cv::cuda::subtract(1, matrix, tmp1, cv::noArray(), -1, cu_stream);
+  cu_multiply(matrix, tmp1, tmp2);
+  tmp2.copyTo(matrix);
+#endif
 }
 
-void Softmax(cv::Mat &matrix) {
+void Softmax(Matrix &matrix) {
+#ifdef CPU_MODE
   scalar max = cv::max(matrix);
-  cv::Mat exp;
+  Matrix exp;
   matrix = matrix - max;
   cv::exp(matrix, exp);
   CHECK(exp.channels() == 1) << exp.channels();
   scalar sum = cv::sum(exp)(0);
   matrix = exp / sum;
+#else
+  scalar max;
+  cv::cuda::minMax(matrix, nullptr, &max);
+  static Matrix exp, tmp1;
+
+  cv::cuda::subtract(matrix, max, tmp1, cv::noArray(), -1, cu_stream);
+  cv::cuda::exp(tmp1, exp);
+  scalar sum = cv::cuda::sum(exp)(0);
+  cv::cuda::divide(exp, sum, matrix, 1, -1, cu_stream);
+#endif
   return;
 }
 
-void derivateTanh(cv::Mat &matrix) {
-  matrix = 1 - matrix.mul(matrix);
+void derivateTanh(Matrix &matrix) {
+#ifdef CPU_MODE
+  matrix = matrix.mul(1 - matrix);
+#elif defined(GPU_MODE)
+  static Matrix tmp1, tmp2;
+  cv::cuda::subtract(1, matrix, tmp1, cv::noArray(), -1, cu_stream);
+  cu_multiply(matrix, tmp1, tmp2);
+  tmp2.copyTo(matrix);
+#endif
 }
 
 template<typename T>
@@ -259,7 +320,7 @@ void Tanh(T *data, const int size) {
   }
 }
 
-void Tanh(cv::Mat &matrix) {
+void Tanh(Matrix &matrix) {
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     Tanh<float>((float *) matrix.data, matrix.cols * matrix.rows);

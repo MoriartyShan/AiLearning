@@ -10,8 +10,8 @@
 #include <memory>
 
 namespace AiLearning{
-using ActiveFuction = void (*) (cv::Mat &);
-using DerivativesFuction = void (*) (cv::Mat &);
+using ActiveFuction = void (*) (Matrix &);
+using DerivativesFuction = void (*) (Matrix &);
 
 class Neuron;
 class MulNetWork;
@@ -48,15 +48,15 @@ private:
   DerivativesFuction _derivatives_func;
   const MulNetWork *_netWork_ptr;
 
-  const cv::Mat *_in;//only useful for the first neuron
+  const Matrix *_in;//only useful for the first neuron
 
-  std::vector<cv::Mat> _Whos;
+  std::vector<Matrix> _Whos;
   std::vector<OptimizerPtr> _optimizers;
-  cv::Mat _processing;
+  Matrix _processing, _tmp, _error;
 //  const size_t _input_data_size;//input data size
   const int _output_data_size;//output data size
   const std::vector<int> _prev_neurons_idx;
-  std::map<int, cv::Mat> _prev_neurons_error; //neuron index, error
+  std::map<int, Matrix> _prev_neurons_error; //neuron index, error
 
   std::vector<int> _next_neurons_idx;
 
@@ -93,17 +93,17 @@ public:
   Neuron(const NeuronConstructor& constructor);
   void constructor(NeuronConstructor &c) const;
 
-  const std::vector<cv::Mat> &Whos() const {return _Whos;}
-  const cv::Mat& Who(const int i) const {return _Whos[i];}
+  const std::vector<Matrix> &Whos() const {return _Whos;}
+  const Matrix& Who(const int i) const {return _Whos[i];}
   size_t num_prev() const {return _prev_neurons_idx.size();}
-  const cv::Mat& processing() const {return _processing;}
+  const Matrix& processing() const {return _processing;}
 
   int id() const {return _id;}
   size_t output_data_size() const {return _output_data_size;}
-  void query(const cv::Mat &in);
+  void query(const Matrix &in);
   void query();
   void back_propogate(
-      const float learning_rate, const cv::Mat &error);
+      const float learning_rate, const Matrix &error);
   void back_propogate(const float learning_rate);
   const std::string& type() const {
     return _active;
@@ -113,7 +113,7 @@ public:
 
   bool is_next_neuron(const int i) const;
 
-  const cv::Mat &prev_error(const int i) const {
+  const Matrix &prev_error(const int i) const {
     return _prev_neurons_error.at(i);
   }
 
@@ -124,15 +124,16 @@ public:
 class MulNetWork {
 private:
   std::vector<NeuronPtr> _neurons;
+  Matrix _last_error;
 public:
   MulNetWork() {}
   MulNetWork(const std::vector<NeuronConstructor> &constructors);
   size_t neurons_num() const {return _neurons.size();}
 
   scalar train(
-      const cv::Mat &in, const cv::Mat &target, const float learning_rate = 0.1);
+      const Matrix &in, const Matrix &target, const float learning_rate = 0.1);
 
-  const cv::Mat& query(const cv::Mat &in);
+  const Matrix& query(const Matrix &in);
 
   void write(const std::string &path, const bool output_matrix) const;
 

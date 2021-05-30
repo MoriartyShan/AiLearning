@@ -5,7 +5,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/cudaarithm.hpp>
 
-const int rows = 8192, cols = 8192;
+const int rows = 8192, cols = 1103;
 const double alpha = 11.3, belta = 1.5;
 
 #define LOG std::cout << __FILE__ << ":" << __LINE__ << ": " << time(0) << ","
@@ -91,7 +91,7 @@ static void cpumulmatrix(benchmark::State& state) {
   }
 }
 
-static void gpumulmatrix(benchmark::State& state) {
+static void gpugemm(benchmark::State& state) {
   cv::cuda::Stream stream;
   cv::Mat tmp(rows, cols, CV_64FC1);
   cv::cuda::GpuMat m1, m2, m3, m4;
@@ -107,11 +107,39 @@ static void gpumulmatrix(benchmark::State& state) {
   cv::randu(tmp, -100, 100);
   m3.upload(tmp);
 
+//  cv::randu(tmp, -100, 100);
+//  m4.upload(tmp);
+
+  for (auto _ : state) {
+    cv::cuda::gemm(m1, m2, alpha, m3, belta, m4, 0, stream);
+    m4.release();
+  }
+}
+
+
+static void gpugemm2(benchmark::State& state) {
+  cv::cuda::Stream stream;
+  cv::Mat tmp(rows, cols, CV_64FC1), cm1;
+  cv::cuda::GpuMat m1, m2, m3, m4;
+
+  cv::randu(tmp, -100, 100);
+  m1.upload(tmp);
+  cm1 = tmp.clone();
+
+  tmp.create(cols, rows,CV_64FC1);
+  cv::randu(tmp, -100, 100);
+  m2.upload(tmp);
+
+  tmp.create(rows, rows,CV_64FC1);
+  cv::randu(tmp, -100, 100);
+  m3.upload(tmp);
+
   cv::randu(tmp, -100, 100);
   m4.upload(tmp);
 
   for (auto _ : state) {
-    cv::cuda::gemm(m1, m2, alpha, m3, belta, m4, 0, stream);
+    m1.upload(cm1);
+    cv::cuda::gemm(m1, m2, alpha, m3, belta, m1, 0, stream);
   }
 }
 
@@ -122,7 +150,8 @@ BENCHMARK(gpumulnostream);
 BENCHMARK(cpugpumulnostream);
 
 BENCHMARK(cpumulmatrix);
-BENCHMARK(gpumulmatrix);
+BENCHMARK(gpugemm);
+BENCHMARK(gpugemm2);
 
 //BENCHMARK_MAIN();
 int main(int argc, char** argv) {

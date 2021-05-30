@@ -19,6 +19,7 @@ target_link_libraries(${target_name}
         gflags
         glog::glog
         opencv_core
+        opencv_cudaarithm
         )
 
 set(target_name "number")
@@ -52,4 +53,12 @@ else()
     message(STATUS "benchmark not found")
 endif()
 
+set(target_name "gpu_cpu_compare")
+add_executable(${target_name}
+        gpu_cpu_compare.cpp)
+
+target_link_libraries(${target_name}
+        opencv_cudaarithm
+        glog::glog
+        )
 

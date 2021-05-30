@@ -10,59 +10,71 @@ namespace AiLearning {
 class GDOptimizer : public Optimizer{
 private:
   double _learning_rate = 0.1;
+  Matrix _output, _tmp;
 public:
   GDOptimizer(){}
-  cv::Mat UpdateParameter(const cv::Mat &error, const cv::Mat &Ok, const cv::Mat &Ik) override {
+  const Matrix& UpdateParameter(const Matrix &error, const Matrix &Ok, const Matrix &Ik) override {
     if (Ok.empty()) {
-      return _learning_rate * error * Ik.t();
+      cv::cuda::gemm(
+          error, Ik, _learning_rate, Matrix(), 0, _output, cv::GEMM_2_T, cu_stream);
+    } else {
+      cu_multiply(error, Ok, _tmp);
+      cv::cuda::gemm(
+          _tmp, Ik, _learning_rate, Matrix(), 0, _output, cv::GEMM_2_T, cu_stream);
     }
-    return _learning_rate * (error.mul(Ok)) * Ik.t();
+
+    return _output;
 
   }
 };
 
 class AdamOptimizer : public Optimizer {
 private:
-  cv::Mat _mt, _vt;
+  Matrix _mt[2], _vt[2], _gt, _gt2, _sqrt_vt;
+  int _t = 0;
   const double _belt1 = 0.9, _belt2 = 0.999, _alpha = 0.001, _e = 1e-7;
-  double _belt1t = 1, _belt2t = 1;
+  double _belt1t = _belt1, _belt2t = _belt2;
+  Matrix _output, _tmp;
 
-  cv::Mat UpdateParameter(const cv::Mat &gt) {
-    if (_mt.empty() || _vt.empty()) {
-      gt.copyTo(_mt);
-      gt.copyTo(_vt);
-      _mt = 0;
-      _vt = 0;
+  const Matrix& UpdateParameter(const Matrix &gt) {
+    if (_mt[0].empty() || _vt[0].empty()) {
+      gt.copyTo(_mt[0]);
+      gt.copyTo(_vt[0]);
+      _mt[0].setTo(0);
+      _vt[0].setTo(0);
     }
+    const int8_t cur = _t % 2, update = (_t + 1) % 2;
 
+    cv::cuda::addWeighted(_mt[cur], _belt1, gt, (1 - _belt1), 0, _mt[update], -1, cu_stream);
+
+    cu_multiply(gt, gt, _gt2);
+    cv::cuda::addWeighted(_vt[cur], _belt2, _gt2, (1 - _belt2), 0, _vt[update], -1, cu_stream);
+    double alphat = _alpha * std::sqrt(1 - _belt2t) / (1 - _belt1t);
+    cv::cuda::sqrt(_vt[update], _sqrt_vt, cu_stream);
+    _t++;
     _belt1t *= _belt1;
     _belt2t *= _belt2;
 
-    _mt = _belt1 * _mt + (1 - _belt1) * gt;
-    _vt = _belt2 * _vt + (1 - _belt2) * gt.mul(gt);
-#if 1
-    double alphat = _alpha * std::sqrt(1 - _belt2t) / (1 - _belt1t);
-    cv::Mat sqrt_vt;
-    cv::sqrt(_vt, sqrt_vt);
-    return alphat * _mt / (sqrt_vt + _e);
-#else
-    cv::Mat dmt = _mt / (1 - _belt1t);
-    cv::Mat dvt = _vt / (1 - _belt2t), sqrt_dvt;
-    cv::sqrt(dvt, sqrt_dvt);
-    return _alpha * dmt / (sqrt_dvt + _e);
-#endif
+    cv::cuda::add(_sqrt_vt, _e, _sqrt_vt);
+    cu_multiply(alphat, _mt[update], _mt[update]);
+    cv::cuda::divide(_mt[update], _sqrt_vt, _output, 1, -1, cu_stream);
+    return _output;
   }
 
 public:
   AdamOptimizer(){}
 
-  cv::Mat UpdateParameter(const cv::Mat &error, const cv::Mat &Ok, const cv::Mat &Ik) override {
+  const Matrix& UpdateParameter(const Matrix &error, const Matrix &Ok, const Matrix &Ik) override {
     if (Ok.empty()) {
-      return UpdateParameter(error * Ik.t());
-    } else {
-      return UpdateParameter((error.mul(Ok)) * Ik.t());
-    }
+      cv::cuda::gemm(
+          error, Ik, 1, Matrix(), 0, _gt, cv::GEMM_2_T, cu_stream);
 
+    } else {
+      cu_multiply(error, Ok, _tmp);
+      cv::cuda::gemm(
+          _tmp, Ik, 1, Matrix(), 0, _gt, cv::GEMM_2_T, cu_stream);
+    }
+    return UpdateParameter(_gt);
   }
 
 };
