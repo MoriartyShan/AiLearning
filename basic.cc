@@ -17,32 +17,18 @@ NetWorks::NetWorks(const int inode, const int hnode, const int onode) :
 
 cv::Mat NetWorks::query(const cv::Mat &in) const {
   cv::Mat processing = _Wih * in;
-  cv::cuda::GpuMat gputmp(processing);
-  Sigmoid(gputmp);
+  Sigmoid(processing);
   LOG(INFO) << "who:" << _Who.size() << " pro:" << processing.size();
-  gputmp.download(processing);
   processing = _Who * processing;
-
-  gputmp.upload(processing);
-
-  Sigmoid(gputmp);
-  gputmp.download(processing);
+  Sigmoid(processing);
   return processing;
 }
 
 void NetWorks::train(const cv::Mat &in, const cv::Mat &target) {
-  cv::cuda::GpuMat tmp;
   cv::Mat hidden_output = _Wih * in;
-
-  tmp.upload(hidden_output);
-  Sigmoid(tmp);
-  tmp.download(hidden_output);
+  Sigmoid(hidden_output);
   cv::Mat final_output = _Who * hidden_output;
-
-  tmp.upload(final_output);
-  Sigmoid(tmp);
-  tmp.download(final_output);
-
+  Sigmoid(final_output);
   cv::Mat error = target - final_output;
   cv::Mat hidden_error = _Who.t() * error;
   _Who += learning_rate * ((error.mul(final_output)).mul(1 - final_output)) * hidden_output.t();

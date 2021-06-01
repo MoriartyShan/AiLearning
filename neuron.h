@@ -7,13 +7,12 @@
 #include "common.h"
 #include "constructor.h"
 #include "optimizer.h"
+#include "activer.h"
 
 #include <glog/logging.h>
 #include <memory>
 
 namespace AiLearning{
-using ActiveFuction = void (*) (Matrix &);
-using DerivativesFuction = void (*) (Matrix &);
 
 class Neuron;
 class MulNetWork;
@@ -24,8 +23,7 @@ using MulNetWorkPtr = std::shared_ptr<MulNetWork>;
 class Neuron{
 private:
   const std::string _active;
-  ActiveFuction _active_func;
-  DerivativesFuction _derivatives_func;
+  ActiverPtr _activer;
   const MulNetWork *_netWork_ptr;
 
   const Matrix *_in;//only useful for the first neuron
@@ -49,24 +47,7 @@ private:
 
   void set_active() {
     const auto &ac = _active;
-    if (ac == "Sigmoid") {
-      _active_func = Sigmoid;
-      _derivatives_func = derivativesSigmoid;
-    } else if (ac == "ELU") {
-      _active_func = ELU;
-      _derivatives_func = derivativesELU;
-    } else if (ac == "Softmax") {
-      _active_func = Softmax;
-      _derivatives_func = derivativesSoftmax;
-    } else if ("RELU" == ac) {
-      _active_func = RELU;
-      _derivatives_func = derivativesRELU;
-    } else if ("Tanh" == ac) {
-      _active_func = Tanh;
-      _derivatives_func = derivateTanh;
-    } else {
-      LOG(FATAL) << "not implemented:" << _active;
-    }
+    _activer = Activer::create(ac);
   }
 
 public:

@@ -95,7 +95,7 @@ void Neuron::query(const Matrix &in){
 
   CHECK(check(processing()))
       << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
-  _active_func(_processing);
+  _activer->active(_processing);
   CHECK(check(processing()))
       << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
   timer.end();
@@ -121,7 +121,7 @@ void Neuron::query() {
     timer1.end();
   }
   CHECK(check(processing())) << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
-  _active_func(_processing);
+  _activer->active(_processing);
   CHECK(check(processing())) << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
   timer.end();
   return;
@@ -142,7 +142,7 @@ void Neuron::back_propogate(
     ///derivate (Tk - Ok) * Oj, Oj is the input from jth neuron of last level
     cross = true;
   } else {
-    _derivatives_func(_processing);
+    _activer->derivatives(_processing);
   }
 #define TEST_OPTIMIZER true
   CHECK(check(processing())) << "neuron_" << id() << ",_process "
@@ -198,6 +198,7 @@ void Neuron::back_propogate(
     timer1.end();
   }
   timer.end();
+//  LOG(ERROR) << "who " << id() << "," << cv::Mat(_Whos[0]).at<scalar>(0, 0);
   return;
 }
 

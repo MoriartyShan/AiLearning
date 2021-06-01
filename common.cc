@@ -161,29 +161,6 @@ void Sigmoid(cv::Mat &matrix) {
 #endif
 }
 
-void Sigmoid(Matrix &matrix){
-  MicrosecondTimer timer(__func__);
-  timer.begin();
-  static Matrix tmp;
-  MatrixUtils::exp(matrix, matrix);
-  MatrixUtils::add(1, matrix, tmp);
-  MatrixUtils::divide(matrix, tmp, matrix);
-  timer.end();
-}
-
-void derivativesSigmoid(Matrix &matrix) {
-#ifdef CPU_MODE
-  matrix = matrix.mul(1 - matrix);
-#elif defined(GPU_MODE)
-  MicrosecondTimer timer(__func__);
-  timer.begin();
-  static Matrix tmp1;
-  MatrixUtils::subtract(1, matrix, tmp1);
-  MatrixUtils::multiply(matrix, tmp1, matrix);
-  timer.end();
-#endif
-}
-
 #define ELU_COEF 1.0
 template<typename T>
 void ELU(T *data, const int size) {

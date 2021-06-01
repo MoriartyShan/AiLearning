@@ -29,9 +29,7 @@ using Matrix = cv::cuda::GpuMat;
 using InputMatrix = const Matrix&;
 using OutputMatrix = Matrix&;
 
-void Sigmoid(Matrix &matrix);
 void Sigmoid(cv::Mat &matrix);
-void derivativesSigmoid(Matrix &matrix);
 
 void ELU(Matrix &matrix);
 void derivativesELU(Matrix &matrix);

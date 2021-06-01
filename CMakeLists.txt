@@ -11,6 +11,7 @@ find_package(OpenCV REQUIRED core cudaarithm)
 
 set(target_name "basic")
 add_library(${target_name}
+        activer.cc
         constructor.cc
         basic.cc
         optimizer.cc
