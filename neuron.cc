@@ -3,6 +3,7 @@
 //
 #include "neuron.h"
 #include "common.h"
+#include "matrix_utils.h"
 #include "timer.h"
 
 namespace AiLearning{
@@ -89,11 +90,14 @@ void Neuron::query(const Matrix &in){
   MicrosecondTimer timer(__func__);
   timer.begin();
   _in = &in;
-  cv::cuda::gemm(Who(0), in, 1, Matrix(), 0, _processing, 0, cu_stream);
+  MatrixUtils::gemm(
+    Who(0), in, 1, Matrix(), 0, _processing, 0);
 
-  CHECK(check(processing())) << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
+  CHECK(check(processing()))
+      << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
   _active_func(_processing);
-  CHECK(check(processing())) << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
+  CHECK(check(processing()))
+      << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
   timer.end();
 //  LOG(ERROR) << "neuron_" << id() << " output " << _processing.size();
   return;
@@ -110,7 +114,7 @@ void Neuron::query() {
   CHECK(check(processing())) << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
   for (size_t i = 0; i < prev_num; i++) {
     timer1.begin("gemm");
-    cv::cuda::gemm(Who(i), _netWork_ptr->neuron(_prev_neurons_idx[i])->processing(), 1, _processing, 1, _tmp, 0, cu_stream);
+    MatrixUtils::gemm(Who(i), _netWork_ptr->neuron(_prev_neurons_idx[i])->processing(), 1, _processing, 1, _tmp, 0);
     timer1.end();
     timer1.begin("copyTo");
     _tmp.copyTo(_processing);
@@ -145,19 +149,19 @@ void Neuron::back_propogate(
       << cv::Mat(processing()).t() << "," << id();
   for (size_t i = 0; i < prev_num; i++) {
     timer1.begin("gemm back");
-    cv::cuda::gemm(
-        Who(i), error, 1.0, cv::noArray(), 0,
+    MatrixUtils::gemm(
+        Who(i), error, 1.0, Matrix(), 0,
         _prev_neurons_error.at(_prev_neurons_idx[i]),
-        cv::GEMM_1_T, cu_stream);
+        MatrixUtils::GEMM_1_T);
     timer1.end();
     timer1.begin("update who");
     if (cross) {
 #if TEST_OPTIMIZER
-      cv::cuda::add(
+      MatrixUtils::add(
           Who(i),
           _optimizers[i]->UpdateParameter(
               error, Matrix(), _netWork_ptr->neuron(_prev_neurons_idx[i])->processing()),
-           _Whos[i], cv::noArray(), -1, cu_stream);
+           _Whos[i]);
 #else
       _Whos[i] += learning_rate *
                   error * (_netWork_ptr->neuron(_prev_neurons_idx[i])->processing()).t();
@@ -165,11 +169,11 @@ void Neuron::back_propogate(
 //      LOG(ERROR) << "cross";
     } else {
 #if TEST_OPTIMIZER
-      cv::cuda::add(
+      MatrixUtils::add(
           Who(i),
           _optimizers[i]->UpdateParameter(
               error,processing(), _netWork_ptr->neuron(_prev_neurons_idx[i])->processing()),
-          _Whos[i], cv::noArray(), -1, cu_stream);
+          _Whos[i]);
 #else
       _Whos[i] += learning_rate *
                   (error.mul(_processing)) * (_netWork_ptr->neuron(_prev_neurons_idx[i])->processing()).t();
@@ -182,11 +186,9 @@ void Neuron::back_propogate(
     timer1.begin("update who0");
     CHECK(prev_num == 0) << prev_num << "," << id();
 #if TEST_OPTIMIZER
-    cv::cuda::add(
-        Who(0),
-        _optimizers[0]->UpdateParameter(
-            error, processing(), *_in),
-        _Whos[0], cv::noArray(), -1, cu_stream);
+    MatrixUtils::add( Who(0),
+        _optimizers[0]->UpdateParameter(error, processing(), *_in),
+        _Whos[0]);
 #else
     _Whos[0] += learning_rate *
                 (error.mul(_processing)) * _in->t();
@@ -207,9 +209,9 @@ void Neuron::back_propogate(const float learning_rate) {
   }
   _error.setTo(0);
   for (auto next : _next_neurons_idx) {
-    cv::cuda::add(
+    MatrixUtils::add(
         _error, _netWork_ptr->neuron(next)->prev_error(id()),
-        _error, cv::noArray(), -1, cu_stream);
+        _error);
   }
   back_propogate(learning_rate, _error);
   timer.end();
@@ -321,8 +323,8 @@ scalar MulNetWork::train(const Matrix &in, const Matrix &target, const float lea
   MicrosecondTimer timer(__func__);
   timer.begin();
   auto &query_result = query(in);
-  cv::cuda::subtract(target, query_result, _last_error, cv::noArray(), -1, cu_stream);
-  double loss = cv::cuda::norm(_last_error, cv::NORM_L2);
+  MatrixUtils::subtract(target, query_result, _last_error);
+  double loss = MatrixUtils::norml2(_last_error);
 //  LOG(INFO) << "loss = " << loss << "," << cur_error.t();
   auto neuron = neurons().rbegin();
   (*neuron)->back_propogate(learning_rate, _last_error);

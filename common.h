@@ -6,6 +6,7 @@
 #define NEURALNETWORK_COMMON_H
 #include <opencv2/opencv.hpp>
 #include <opencv2/cudaarithm.hpp>
+#include <Eigen/Dense>
 
 namespace AiLearning {
 #define GPU_MODE
@@ -22,9 +23,11 @@ using Matrix = cv::Mat;
 #elif defined(GPU_MODE)
 extern cv::cuda::Stream cu_stream;
 using Matrix = cv::cuda::GpuMat;
-#define cu_multiply(src1, src2, dst) cv::cuda::multiply(src1, src2, dst, 1, -1, cu_stream)
 #else
 #endif
+
+using InputMatrix = const Matrix&;
+using OutputMatrix = Matrix&;
 
 void Sigmoid(Matrix &matrix);
 void Sigmoid(cv::Mat &matrix);

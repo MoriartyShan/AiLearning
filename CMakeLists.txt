@@ -15,7 +15,8 @@ add_library(${target_name}
         basic.cc
         optimizer.cc
         common.cc
-        neuron.cc)
+        neuron.cc
+        )
 
 target_link_libraries(${target_name}
         gflags
@@ -42,7 +43,7 @@ target_link_libraries(${target_name}
         )
 
 find_package(benchmark)
-if(benchmark_FOUND)
+if(false AND benchmark_FOUND)
     set(target_name "benchmark_test")
 
 #    find_package(CUDA)

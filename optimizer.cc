@@ -2,6 +2,7 @@
 // Created by moriarty on 5/26/21.
 //
 #include "optimizer.h"
+#include "matrix_utils.h"
 #include "timer.h"
 #include <glog/logging.h>
 
@@ -16,12 +17,12 @@ public:
   GDOptimizer(){}
   const Matrix& UpdateParameter(const Matrix &error, const Matrix &Ok, const Matrix &Ik) override {
     if (Ok.empty()) {
-      cv::cuda::gemm(
-          error, Ik, _learning_rate, Matrix(), 0, _output, cv::GEMM_2_T, cu_stream);
+      MatrixUtils::gemm(
+          error, Ik, _learning_rate, Matrix(), 0, _output, MatrixUtils::GEMM_2_T);
     } else {
-      cu_multiply(error, Ok, _tmp);
-      cv::cuda::gemm(
-          _tmp, Ik, _learning_rate, Matrix(), 0, _output, cv::GEMM_2_T, cu_stream);
+      multiply(error, Ok, _tmp);
+      MatrixUtils::gemm(
+          _tmp, Ik, _learning_rate, Matrix(), 0, _output, MatrixUtils::GEMM_2_T);
     }
 
     return _output;
@@ -48,19 +49,19 @@ private:
     }
     const int8_t cur = _t % 2, update = (_t + 1) % 2;
 
-    cv::cuda::addWeighted(_mt[cur], _belt1, gt, (1 - _belt1), 0, _mt[update], -1, cu_stream);
+    MatrixUtils::addWeighted(_mt[cur], _belt1, gt, (1 - _belt1), 0, _mt[update]);
 
-    cu_multiply(gt, gt, _gt2);
-    cv::cuda::addWeighted(_vt[cur], _belt2, _gt2, (1 - _belt2), 0, _vt[update], -1, cu_stream);
+    multiply(gt, gt, _gt2);
+    MatrixUtils::addWeighted(_vt[cur], _belt2, _gt2, (1 - _belt2), 0, _vt[update]);
     double alphat = _alpha * std::sqrt(1 - _belt2t) / (1 - _belt1t);
-    cv::cuda::sqrt(_vt[update], _sqrt_vt, cu_stream);
+    MatrixUtils::sqrt(_vt[update], _sqrt_vt);
     _t++;
     _belt1t *= _belt1;
     _belt2t *= _belt2;
 
-    cv::cuda::add(_sqrt_vt, _e, _sqrt_vt);
-    cu_multiply(alphat, _mt[update], _mt[update]);
-    cv::cuda::divide(_mt[update], _sqrt_vt, _output, 1, -1, cu_stream);
+    MatrixUtils::add(_sqrt_vt, _e, _sqrt_vt);
+    MatrixUtils::multiply(alphat, _mt[update], _mt[update]);
+    MatrixUtils::divide(_mt[update], _sqrt_vt, _output);
     timer.end();
     return _output;
   }
@@ -70,13 +71,13 @@ public:
 
   const Matrix& UpdateParameter(const Matrix &error, const Matrix &Ok, const Matrix &Ik) override {
     if (Ok.empty()) {
-      cv::cuda::gemm(
-          error, Ik, 1, Matrix(), 0, _gt, cv::GEMM_2_T, cu_stream);
+      MatrixUtils::gemm(
+          error, Ik, 1, Matrix(), 0, _gt, MatrixUtils::GEMM_2_T);
 
     } else {
-      cu_multiply(error, Ok, _tmp);
-      cv::cuda::gemm(
-          _tmp, Ik, 1, Matrix(), 0, _gt, cv::GEMM_2_T, cu_stream);
+      MatrixUtils::multiply(error, Ok, _tmp);
+      MatrixUtils::gemm(
+          _tmp, Ik, 1, Matrix(), 0, _gt, MatrixUtils::GEMM_2_T);
     }
     return UpdateParameter(_gt);
   }

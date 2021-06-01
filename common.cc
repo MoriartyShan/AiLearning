@@ -2,6 +2,7 @@
 // Created by moriarty on 2021/5/16.
 //
 #include "common.h"
+#include "matrix_utils.h"
 #include "timer.h"
 #include <glog/logging.h>
 
@@ -71,7 +72,7 @@ void Random(T *data, const int size) {
   }
 }
 
-void Random(cv::cuda::GpuMat &matrix) {
+void Random(Matrix &matrix) {
   CHECK(matrix.type() == CV_TYPE);
 #ifdef CPU_MODE
   cv::randu(matrix, -0.9999, 0.9999);
@@ -160,13 +161,13 @@ void Sigmoid(cv::Mat &matrix) {
 #endif
 }
 
-void Sigmoid(cv::cuda::GpuMat &matrix){
+void Sigmoid(Matrix &matrix){
   MicrosecondTimer timer(__func__);
   timer.begin();
-  static cv::cuda::GpuMat tmp;
-  cv::cuda::exp(matrix, matrix, cu_stream);
-  cv::cuda::add(1, matrix, tmp, cv::noArray(), -1, cu_stream);
-  cv::cuda::divide(matrix, tmp, matrix, 1, -1, cu_stream);
+  static Matrix tmp;
+  MatrixUtils::exp(matrix, matrix);
+  MatrixUtils::add(1, matrix, tmp);
+  MatrixUtils::divide(matrix, tmp, matrix);
   timer.end();
 }
 
@@ -177,8 +178,8 @@ void derivativesSigmoid(Matrix &matrix) {
   MicrosecondTimer timer(__func__);
   timer.begin();
   static Matrix tmp1;
-  cv::cuda::subtract(1, matrix, tmp1, cv::noArray(), -1, cu_stream);
-  cu_multiply(matrix, tmp1, matrix);
+  MatrixUtils::subtract(1, matrix, tmp1);
+  MatrixUtils::multiply(matrix, tmp1, matrix);
   timer.end();
 #endif
 }
@@ -276,8 +277,8 @@ void derivativesSoftmax(Matrix &matrix) {
   matrix = matrix.mul(1 - matrix);
 #elif defined(GPU_MODE)
   static Matrix tmp1, tmp2;
-  cv::cuda::subtract(1, matrix, tmp1, cv::noArray(), -1, cu_stream);
-  cu_multiply(matrix, tmp1, tmp2);
+  MatrixUtils::subtract(1, matrix, tmp1);
+  MatrixUtils::multiply(matrix, tmp1, tmp2);
   tmp2.copyTo(matrix);
 #endif
 }
@@ -293,13 +294,13 @@ void Softmax(Matrix &matrix) {
   matrix = exp / sum;
 #else
   scalar max;
-  cv::cuda::minMax(matrix, nullptr, &max);
+  minMax(matrix, nullptr, &max);
   static Matrix exp, tmp1;
 
-  cv::cuda::subtract(matrix, max, tmp1, cv::noArray(), -1, cu_stream);
-  cv::cuda::exp(tmp1, exp);
-  scalar sum = cv::cuda::sum(exp)(0);
-  cv::cuda::divide(exp, sum, matrix, 1, -1, cu_stream);
+  MatrixUtils::subtract(matrix, max, tmp1);
+  MatrixUtils::exp(tmp1, exp);
+  scalar sum = MatrixUtils::sum(exp);
+  MatrixUtils::divide(exp, sum, matrix);
 #endif
   return;
 }
@@ -309,8 +310,8 @@ void derivateTanh(Matrix &matrix) {
   matrix = matrix.mul(1 - matrix);
 #elif defined(GPU_MODE)
   static Matrix tmp1, tmp2;
-  cv::cuda::subtract(1, matrix, tmp1, cv::noArray(), -1, cu_stream);
-  cu_multiply(matrix, tmp1, tmp2);
+  MatrixUtils::subtract(1, matrix, tmp1);
+  MatrixUtils::multiply(matrix, tmp1, tmp2);
   tmp2.copyTo(matrix);
 #endif
 }
