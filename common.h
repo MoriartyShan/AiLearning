@@ -5,11 +5,28 @@
 #ifndef NEURALNETWORK_COMMON_H
 #define NEURALNETWORK_COMMON_H
 #include <opencv2/opencv.hpp>
+#define CPU_MODE
+
+
+#ifdef GPU_MODE
 #include <opencv2/cudaarithm.hpp>
+#endif
 #include <Eigen/Dense>
 
 namespace AiLearning {
-#define GPU_MODE
+
+template<class T, class U>
+struct IsSameType
+{
+  enum {result=false};
+};
+
+template<class T>
+struct IsSameType<T, T>
+{
+  enum {result=true};
+};
+
 
 #if 0
 using scalar = float;
@@ -18,6 +35,7 @@ using scalar = float;
 using scalar = double;
 #define CV_TYPE CV_64FC1
 #endif
+
 #ifdef CPU_MODE
 using Matrix = cv::Mat;
 #elif defined(GPU_MODE)
@@ -42,8 +60,9 @@ void derivativesRELU(Matrix &matrix);
 
 void Tanh(Matrix &matrix);
 void derivateTanh(Matrix &matrix);
-
+#ifdef GPU_MODE
 void Random(cv::cuda::GpuMat &matrix);
+#endif
 void Random(cv::Mat &matrix);
 bool check(const Matrix &matrix);
 

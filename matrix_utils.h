@@ -5,6 +5,8 @@
 #ifndef NEURALNETWORK_MATRIX_UTILS_H
 #define NEURALNETWORK_MATRIX_UTILS_H
 #include "common.h"
+#include <glog/logging.h>
+#include <typeinfo>
 
 namespace AiLearning {
 namespace MatrixUtils {
@@ -14,7 +16,7 @@ enum GemmFlags {
   GEMM_2_T = 2, //!< transposes src2
   GEMM_3_T = 4 //!< transposes src3
 };
-
+#ifdef GPU_MODE
 /*
  * @dst = @alpha * @src1 * @src2 + @beta * @src3;
  * @flags:GemmFlags
@@ -94,7 +96,110 @@ inline double sum(InputMatrix src) {
 inline double norml2(InputMatrix src1) {
   return cv::cuda::norm(src1, cv::NORM_L2);
 }
+#elif defined(CPU_MODE)
+/*
+ * @dst = @alpha * @src1 * @src2 + @beta * @src3;
+ * @flags:GemmFlags
+ * */
+inline void gemm(const Matrix &src1, const Matrix &src2, double alpha,
+                 const Matrix &src3, double beta, Matrix &dst, int flags) {
+//  LOG(ERROR) << "using matrix";
+#if 1
+  const Matrix& _src1 = ((flags & GemmFlags::GEMM_1_T) == 0) ? src1 : src1.t();
+  const Matrix& _src2 = ((flags & GemmFlags::GEMM_2_T) == 0) ? src2 : src2.t();
+  const Matrix& _src3 = ((flags & GemmFlags::GEMM_3_T) == 0) ? src3 : src3.t();
+//  LOG(ERROR) << _src1.size() << "," << _src2.size() << "," << _src3.size();
+//  LOG(ERROR) << src1.size() << "," << src2.size() << "," << src3.size();
 
+  if (src3.empty() || std::abs(beta) < std::numeric_limits<scalar>::epsilon()) {
+    dst = alpha * _src1 * _src2;
+  } else {
+    dst = alpha * _src1 * _src2 + beta * src3;
+  }
+
+//  LOG(ERROR) << src1.size() << "," << src2.size() << "," << src3.size();
+
+#else
+  cv::gemm(src1, src2, alpha, src3, beta, dst, flags);
+#endif
+  return;
+}
+
+
+/*
+ * @dst = @src1 + @src2;
+ * _Type1 and _Type2 is matrix or scalar
+ * */
+template<typename _Type1, typename _Type2>
+inline void add(_Type1 src1, _Type2 src2, Matrix &dst) {
+  dst = src1 + src2;
+  return;
+}
+
+/*
+ * @dst = @alpha * @src1 + @beta * @src2 + @gamma;
+ * */
+inline void addWeighted(
+    InputMatrix src1, double alpha, InputMatrix src2,
+    double beta, double gamma, OutputMatrix dst) {
+  dst = src1 * alpha + src2 * beta + gamma;
+  return;
+}
+
+/*
+ * @dst = @src1 - @src2;
+ * */
+template<typename _Type1, typename _Type2>
+inline void subtract(_Type1 src1, _Type2 src2, OutputMatrix dst) {
+  dst = src1 - src2;
+  return;
+}
+
+/* element wise
+ * @dst = @src1.mul(@src2);
+ * */
+template<typename _Type1, typename _Type2>
+void multiply(const _Type1 src1, const _Type2 src2, OutputMatrix dst) {
+  dst = src1 * src2;
+
+  return;
+}
+
+template<>
+inline void multiply<cv::Mat, cv::Mat>(const cv::Mat src1, const cv::Mat src2, OutputMatrix dst) {
+  dst = src1.mul(src2);
+}
+
+
+/*
+ * @dst = @src1 / @src2;
+ * */
+template<typename _Type1, typename _Type2>
+void divide(_Type1 src1, _Type2 src2, OutputMatrix dst) {
+  dst = src1 / src2;
+  return;
+}
+
+
+
+inline void sqrt(InputMatrix src, OutputMatrix dst) {
+  cv::sqrt(src, dst);
+  return;
+}
+
+inline void exp(InputMatrix src, OutputMatrix dst) {
+  cv::exp(src, dst);
+  return;
+}
+
+inline double sum(InputMatrix src) {
+  return cv::sum(src)(0);
+}
+
+inline double norml2(InputMatrix src1) {
+  return cv::norm(src1, cv::NORM_L2);
+}
+#endif
 }//namespace MatrixUtils
 }//namespace AiLearning
 

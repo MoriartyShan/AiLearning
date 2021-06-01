@@ -72,10 +72,12 @@ void Random(T *data, const int size) {
   }
 }
 
-void Random(Matrix &matrix) {
+void Random(cv::cuda::GpuMat &matrix) {
   CHECK(matrix.type() == CV_TYPE);
-#ifdef CPU_MODE
-  cv::randu(matrix, -0.9999, 0.9999);
+#if 1
+  cv::Mat r(matrix);
+  Random(r);
+  matrix.upload(r);
 #else
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
@@ -90,7 +92,7 @@ void Random(Matrix &matrix) {
 
 void Random(cv::Mat &matrix) {
   CHECK(matrix.type() == CV_TYPE);
-#ifdef CPU_MODE
+#if 1
   cv::randu(matrix, -0.9999, 0.9999);
 #else
   CHECK(matrix.isContinuous());

@@ -81,7 +81,11 @@ void Neuron::constructor(NeuronConstructor &c) const {
 
   c._Whos.resize(_Whos.size());
   for (int i = 0; i < _Whos.size(); i++) {
+#ifdef GPU_MODE
     _Whos[i].download(c._Whos[i]);
+#elif defined(CPU_MODE)
+    c._Whos[i] = _Whos[i].clone();
+#endif
   }
   return;
 }

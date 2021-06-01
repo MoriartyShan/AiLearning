@@ -25,7 +25,7 @@ void create_std(std::vector<AiLearning::Matrix> &res) {
     target.setTo(0.0001);
     (*target.ptr<scalar>(i)) = 0.9999;
     res.emplace_back(target);
-    LOG(ERROR) << "target [" << i << "] = " << cv::Mat(target).t();
+//    LOG(ERROR) << "target [" << i << "] = " << cv::Mat(target).t();
   }
 }
 
@@ -48,7 +48,11 @@ int create_input(const std::string& line, AiLearning::Matrix& _res) {
   GIVE_VALUE(783);
   //LOG(ERROR) << target.t() << "\n" << res;
   //getchar();
+#ifdef GPU_MODE
   _res.upload(res);
+#elif defined(CPU_MODE)
+  _res = res;
+#endif
   return std;
 }
 
@@ -76,7 +80,11 @@ AiLearning::NetWorks train(const int epoch = 5, AiLearning::NetWorks *input_work
       std::getline(file, line);
       if (!line.empty()) {
         int number = create_input(line, input);
+#ifdef GPU_MODE
         input.download(input_cpu);
+#elif defined(CPU_MODE)
+        input_cpu = input;
+#endif
         work.train(input_cpu, std_res[number]);
       }
     }
@@ -131,7 +139,11 @@ scalar query(const AiLearning::NetWorks &work) {
     std::getline(file, line);
     if (!line.empty()) {
       int number = create_input(line, input_);
+#ifdef GPU_MODE
       input_.download(input);
+#elif defined(CPU_MODE)
+      input = input_;
+#endif
       cv::Mat res = work.query(input);
       auto real = get_res(std_res[number]);
       auto detect = get_res(res);
