@@ -6,6 +6,7 @@
 #include <opencv2/cudaarithm.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Core>
+#include <glog/logging.h>
 
 #include <viennacl/matrix.hpp>
 #include "viennacl/linalg/prod.hpp"
@@ -17,7 +18,6 @@ const int rows = 784, cols = 100, rows2 = cols, cols2 = 1;
 const double alpha = 11.3, belta = 1.5;
 using Scalar_ = float;
 #define CV_TYPE CV_32FC1
-#define LOG std::cout << __FILE__ << ":" << __LINE__ << ": " << time(0) << ","
 
 
 void test_viennacl_linalg_cuda(benchmark::State& state) {
@@ -179,7 +179,8 @@ static void gpugemm2(benchmark::State& state) {
 
 
 void test_eigen_parallel(benchmark::State& state) {
-  LOG << "eigen thread = " << Eigen::nbThreads() << std::endl;
+  int c = 0;
+  LOG(ERROR) << "eigen thread = " << Eigen::nbThreads() << "," << state.thread_index << "," << state.threads;
   Eigen::Matrix<Scalar_, Eigen::Dynamic, Eigen::Dynamic> m1, m2, m3, m4;
 
   m1.resize(rows, cols);
@@ -195,8 +196,10 @@ void test_eigen_parallel(benchmark::State& state) {
   m4.setRandom();
 
   for (auto _ : state) {
+    c++;
     m4 = alpha * m1 * m2 + belta * m3;
   }
+  LOG(ERROR) << "eigen end = " << Eigen::nbThreads() << "," << state.thread_index << "," << state.threads << "," << c;
 }
 
 void test_viennacl_linalg(benchmark::State& state) {
@@ -225,16 +228,16 @@ void test_viennacl_linalg(benchmark::State& state) {
 //BENCHMARK(gpumulnostream);
 //BENCHMARK(cpugpumulnostream);
 //
-//BENCHMARK(gpugemm2);
+BENCHMARK(test_eigen_parallel);
+BENCHMARK(gpugemm2);
 BENCHMARK(cpumulmatrix);
 BENCHMARK(gpugemm);
 BENCHMARK(test_viennacl_linalg);
-BENCHMARK(test_eigen_parallel);
 
 //BENCHMARK_MAIN();
 int main(int argc, char** argv) {
   Eigen::initParallel();
-  Eigen::setNbThreads(8);
+  Eigen::setNbThreads(1);
   ::benchmark::Initialize(&argc, argv);
   if (::benchmark::ReportUnrecognizedArguments(argc, argv))
     return 1;

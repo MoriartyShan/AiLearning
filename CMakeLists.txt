@@ -58,18 +58,19 @@ if(benchmark_FOUND)
 
 #    add_compile_definitions(VIENNACL_WITH_CUDA ON)
 
-    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fopenmp")
+#    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fopenmp")
     add_compile_definitions(VIENNACL_WITH_OPENMP ON)
     add_compile_definitions(EIGEN_USE_MKL_ALL ON)
+    add_compile_definitions(EIGEN_USE_MKL ON)
 
     target_include_directories(${target_name} PUBLIC
             ${VIENNACL_INCLUDE_DIRS}
             ${CUDA_INCLUDE_DIRS}
-            "/opt/intel/compilers_and_libraries_2020.4.304/linux/mkl/include"
+            "/opt/intel/mkl/include"
             )
 
     file(GLOB mkl_libs
-            /opt/intel/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64/*.so
+            /opt/intel/mkl/lib/intel64/libmkl_rt.so
             )
 
 #
@@ -77,6 +78,7 @@ if(benchmark_FOUND)
             benchmark::benchmark
             opencv_cudaarithm
             ${mkl_libs}
+            glog::glog
             )
 else()
     message(STATUS "benchmark not found")
