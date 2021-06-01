@@ -60,7 +60,7 @@ if(benchmark_FOUND)
 
 #    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fopenmp")
     add_compile_definitions(VIENNACL_WITH_OPENMP ON)
-#    add_compile_definitions(EIGEN_USE_MKL_ALL ON)
+    add_compile_definitions(EIGEN_USE_MKL_ALL ON)
 #    add_compile_definitions(EIGEN_USE_MKL ON)
 
 #    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")

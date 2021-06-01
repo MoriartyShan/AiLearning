@@ -16,9 +16,13 @@
 
 const int rows = 784, cols = 100, rows2 = cols, cols2 = 1;
 const double alpha = 11.3, belta = 1.5;
+#if 0
 using Scalar_ = float;
 #define CV_TYPE CV_32FC1
-
+#else
+using Scalar_ = double;
+#define CV_TYPE CV_64FC1
+#endif
 
 void test_viennacl_linalg_cuda(benchmark::State& state) {
   viennacl::matrix<Scalar_> m1(rows, cols), m2(rows2, cols2), m3(rows, cols2), m4(rows, cols2);
@@ -229,15 +233,15 @@ void test_viennacl_linalg(benchmark::State& state) {
 //BENCHMARK(cpugpumulnostream);
 //
 BENCHMARK(test_eigen_parallel);
-BENCHMARK(gpugemm2);
-BENCHMARK(cpumulmatrix);
-BENCHMARK(gpugemm);
-BENCHMARK(test_viennacl_linalg);
+//BENCHMARK(cpumulmatrix);
+//BENCHMARK(gpugemm2);
+//BENCHMARK(gpugemm);
+//BENCHMARK(test_viennacl_linalg);
 
 //BENCHMARK_MAIN();
 int main(int argc, char** argv) {
   Eigen::initParallel();
-  Eigen::setNbThreads(1);
+//  Eigen::setNbThreads(8);
   ::benchmark::Initialize(&argc, argv);
   if (::benchmark::ReportUnrecognizedArguments(argc, argv))
     return 1;
