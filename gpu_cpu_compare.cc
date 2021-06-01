@@ -4,6 +4,7 @@
 
 #include <glog/logging.h>
 #include <opencv2/cudaarithm.hpp>
+#include <Eigen/Core>
 
 void test_addWeighted() {
   const double alpha = 1.2, beta = 4.56, gamma = -4.1;
@@ -137,7 +138,8 @@ void test_gemm() {
   m1.download(cp3);
   LOG(ERROR) << __func__  << ":dirrerent = " << cv::norm(cp3 - cp1);
 }
-
+using EigenMatrix = Eigen::Matrix<
+  double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 int main(int argc, char **argv) {
   google::SetVersionString("1.0.0");
   google::SetUsageMessage(std::string(argv[0]) + " [OPTION]");
@@ -148,5 +150,17 @@ int main(int argc, char **argv) {
   test_divide();
   test_subtract();
   test_gemm();
+
+  EigenMatrix m = EigenMatrix::Random(2, 3), n = m;
+  n.setRandom();
+
+  LOG(ERROR) << "m:\n" << m;
+  LOG(ERROR) << "n:\n" << n;
+
+  EigenMatrix p = m.array().sqrt();
+
+//  m.addTo(n);
+  LOG(ERROR) << "p:\n" << p;
+//  LOG(ERROR) << "n:\n" << n;
   return 0;
 }

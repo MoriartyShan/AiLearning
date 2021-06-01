@@ -271,15 +271,19 @@ void Softmax(Matrix &matrix) {
   CHECK(exp.channels() == 1) << exp.channels();
   scalar sum = cv::sum(exp)(0);
   matrix = exp / sum;
-#else
-  scalar max;
-  minMax(matrix, nullptr, &max);
+#elif defined(OPENCV_CUDA_MODE)
+  double max;
+  cv::cuda::minMax(matrix, nullptr, &max);
   static Matrix exp, tmp1;
 
   MatrixUtils::subtract(matrix, max, tmp1);
   MatrixUtils::exp(tmp1, exp);
   scalar sum = MatrixUtils::sum(exp);
   MatrixUtils::divide(exp, sum, matrix);
+#elif defined(EIGEN_MODE)
+  LOG(ERROR) << "remember to implement this function:" << __func__;
+#else
+#error "dd"
 #endif
   return;
 }

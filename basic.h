@@ -7,6 +7,7 @@
 #include "common.h"
 #include "neuron.h"
 #include <opencv2/opencv.hpp>
+#include <opencv2/core/eigen.hpp>
 
 
 namespace AiLearning {
@@ -23,8 +24,15 @@ public:
     read_work(path);
   }
   NetWorks(const MulNetWork &mul) {
+#if defined(OPENCV_CUDA_MODE) || defined(OPENCV_CPU_MODE)
     _Wih = cv::Mat(mul.neuron(0)->Who(0).clone());
     _Who = cv::Mat(mul.neuron(1)->Who(0).clone());
+#elif defined(EIGEN_MODE)
+    cv::eigen2cv(mul.neuron(0)->Who(0), _Wih);
+    cv::eigen2cv(mul.neuron(1)->Who(0), _Who);
+#else
+#error "You must specify one mode"
+#endif
   }
 
   NetWorks(const int inode, const int hnode, const int onode);

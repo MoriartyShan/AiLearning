@@ -52,6 +52,8 @@ int create_input(const std::string& line, AiLearning::Matrix& _res) {
   _res.upload(res);
 #elif defined(OPENCV_CPU_MODE)
   _res = res;
+#else
+#error "You must specify one mode"
 #endif
   return std;
 }
@@ -84,6 +86,8 @@ AiLearning::NetWorks train(const int epoch = 5, AiLearning::NetWorks *input_work
         input.download(input_cpu);
 #elif defined(OPENCV_CPU_MODE)
         input_cpu = input;
+#else
+#error "You must specify one mode"
 #endif
         work.train(input_cpu, std_res[number]);
       }
@@ -143,6 +147,8 @@ scalar query(const AiLearning::NetWorks &work) {
       input_.download(input);
 #elif defined(OPENCV_CPU_MODE)
       input = input_;
+#else
+#error "You must specify one mode"
 #endif
       cv::Mat res = work.query(input);
       auto real = get_res(std_res[number]);

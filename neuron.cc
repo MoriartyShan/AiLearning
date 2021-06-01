@@ -5,6 +5,7 @@
 #include "common.h"
 #include "matrix_utils.h"
 #include "timer.h"
+#include <opencv2/core/eigen.hpp>
 
 namespace AiLearning{
 
@@ -70,7 +71,13 @@ void Neuron::constructor(NeuronConstructor &c) const {
   c._next_neurons_idx = _next_neurons_idx;
   c._output_data_size = _output_data_size;
   if (_Whos.size() == 1) {
+#if defined(OPENCV_CUDA_MODE) || defined(OPENCV_CPU_MODE)
     c._input_data_size = _Whos.front().cols;
+#elif defined(EIGEN_MODE)
+    c._input_data_size = _Whos.front().cols();
+#else
+#error "You must specify one mode"
+#endif
   } else {
     c._input_data_size = 0;
   }
@@ -85,6 +92,10 @@ void Neuron::constructor(NeuronConstructor &c) const {
     _Whos[i].download(c._Whos[i]);
 #elif defined(OPENCV_CPU_MODE)
     c._Whos[i] = _Whos[i].clone();
+#elif defined(EIGEN_MODE)
+    cv::eigen2cv(Who(i), c._Whos[i]);
+#else
+#error "You must specify one mode"
 #endif
   }
   return;
@@ -97,11 +108,11 @@ void Neuron::query(const Matrix &in){
   MatrixUtils::gemm(
     Who(0), in, 1, Matrix(), 0, _processing, 0);
 
-  CHECK(check(processing()))
-      << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
+//  CHECK(check(processing()))
+//      << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
   _activer->active(_processing);
-  CHECK(check(processing()))
-      << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
+//  CHECK(check(processing()))
+//      << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
   timer.end();
 //  LOG(ERROR) << "neuron_" << id() << " output " << _processing.size();
   return;
@@ -113,7 +124,13 @@ void Neuron::query() {
   const size_t prev_num = num_prev();
   _in = nullptr;
   timer1.begin("setto 0");
+#if defined(OPENCV_CUDA_MODE) || defined(OPENCV_CPU_MODE)
   _processing.setTo(0);
+#elif defined(EIGEN_MODE)
+  _processing.setZero();
+#else
+#error "You must specify one mode"
+#endif
   timer1.end();
   CHECK(check(processing())) << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
   for (size_t i = 0; i < prev_num; i++) {
