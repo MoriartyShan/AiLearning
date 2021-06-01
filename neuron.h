@@ -5,8 +5,10 @@
 #ifndef NEURALNETWORK_NEURON_H
 #define NEURALNETWORK_NEURON_H
 #include "common.h"
-#include "glog/logging.h"
+#include "constructor.h"
 #include "optimizer.h"
+
+#include <glog/logging.h>
 #include <memory>
 
 namespace AiLearning{
@@ -18,28 +20,6 @@ class MulNetWork;
 
 using NeuronPtr = std::shared_ptr<Neuron>;
 using MulNetWorkPtr = std::shared_ptr<MulNetWork>;
-
-struct NeuronConstructor{
-  const MulNetWork *_netWork_ptr;
-
-  std::vector<int> _prev_neurons_idx;
-  std::vector<cv::Mat> _Whos;
-
-  std::vector<int> _next_neurons_idx;
-
-  int _input_data_size;
-  int _output_data_size;
-
-  std::string _active_func;
-  bool check_data() const;
-
-  void write(
-      cv::FileStorage &fs, const int id,
-      const bool output_matrix = true) const;
-
-  bool read(cv::FileStorage &fs, const int id);
-
-};
 
 class Neuron{
 private:

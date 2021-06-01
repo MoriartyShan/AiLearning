@@ -2,7 +2,7 @@
 import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"]='2'
 import tensorflow as tf
-#print(tf.__name__, tf.__version__)
+print(tf.__name__, tf.__version__)
 (x_train_all, y_train_all), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 
 x_train_all, x_test = x_train_all / 255.0, x_test / 255.0
