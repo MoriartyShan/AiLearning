@@ -60,8 +60,8 @@ private:
     _belt2t *= _belt2;
 
     MatrixUtils::add(_sqrt_vt, _e, _sqrt_vt);
-    MatrixUtils::multiply(alphat, _mt[update], _mt[update]);
     MatrixUtils::divide(_mt[update], _sqrt_vt, _output);
+    MatrixUtils::multiply(alphat, _output, _output);
     timer.end();
     return _output;
   }

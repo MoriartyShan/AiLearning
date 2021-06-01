@@ -4,29 +4,22 @@
 
 #ifndef NEURALNETWORK_COMMON_H
 #define NEURALNETWORK_COMMON_H
-#include <opencv2/opencv.hpp>
-#define CPU_MODE
+//#define OPENCV_CUDA_MODE
 
 
-#ifdef GPU_MODE
+#ifdef OPENCV_CUDA_MODE
 #include <opencv2/cudaarithm.hpp>
+#include <opencv2/opencv.hpp>
+#elif defined(OPENCV_CPU_MODE)
+#include <opencv2/opencv.hpp>
+#elif defined(EIGEN_MODE)
+#include <Eigen/Core>
+#else
+#error "You must specify one mode"
 #endif
 #include <Eigen/Dense>
 
 namespace AiLearning {
-
-template<class T, class U>
-struct IsSameType
-{
-  enum {result=false};
-};
-
-template<class T>
-struct IsSameType<T, T>
-{
-  enum {result=true};
-};
-
 
 #if 0
 using scalar = float;
@@ -36,12 +29,14 @@ using scalar = double;
 #define CV_TYPE CV_64FC1
 #endif
 
-#ifdef CPU_MODE
+
+#ifdef OPENCV_CPU_MODE
 using Matrix = cv::Mat;
-#elif defined(GPU_MODE)
+#elif defined(OPENCV_CUDA_MODE)
 extern cv::cuda::Stream cu_stream;
 using Matrix = cv::cuda::GpuMat;
 #else
+
 #endif
 
 using InputMatrix = const Matrix&;
@@ -60,7 +55,7 @@ void derivativesRELU(Matrix &matrix);
 
 void Tanh(Matrix &matrix);
 void derivateTanh(Matrix &matrix);
-#ifdef GPU_MODE
+#ifdef OPENCV_CUDA_MODE
 void Random(cv::cuda::GpuMat &matrix);
 #endif
 void Random(cv::Mat &matrix);

@@ -61,7 +61,7 @@ double max(AiLearning::Matrix &matrix) {
 }
 
 namespace AiLearning {
-#ifdef GPU_MODE
+#ifdef OPENCV_CUDA_MODE
 cv::cuda::Stream cu_stream;
 #endif
 
@@ -252,7 +252,7 @@ void RELU(Matrix &matrix) {
 }
 
 void derivativesSoftmax(Matrix &matrix) {
-#ifdef CPU_MODE
+#ifdef OPENCV_CPU_MODE
   matrix = matrix.mul(1 - matrix);
 #elif defined(GPU_MODE)
   static Matrix tmp1, tmp2;
@@ -263,7 +263,7 @@ void derivativesSoftmax(Matrix &matrix) {
 }
 
 void Softmax(Matrix &matrix) {
-#ifdef CPU_MODE
+#ifdef OPENCV_CPU_MODE
   scalar max = cv::max(matrix);
   Matrix exp;
   matrix = matrix - max;
@@ -285,9 +285,9 @@ void Softmax(Matrix &matrix) {
 }
 
 void derivateTanh(Matrix &matrix) {
-#ifdef CPU_MODE
+#ifdef OPENCV_CPU_MODE
   matrix = matrix.mul(1 - matrix);
-#elif defined(GPU_MODE)
+#elif defined(OPENCV_CUDA_MODE)
   static Matrix tmp1, tmp2;
   MatrixUtils::subtract(1, matrix, tmp1);
   MatrixUtils::multiply(matrix, tmp1, tmp2);

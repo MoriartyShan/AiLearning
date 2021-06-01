@@ -16,7 +16,7 @@ enum GemmFlags {
   GEMM_2_T = 2, //!< transposes src2
   GEMM_3_T = 4 //!< transposes src3
 };
-#ifdef GPU_MODE
+#ifdef OPENCV_CUDA_MODE
 /*
  * @dst = @alpha * @src1 * @src2 + @beta * @src3;
  * @flags:GemmFlags
@@ -96,7 +96,7 @@ inline double sum(InputMatrix src) {
 inline double norml2(InputMatrix src1) {
   return cv::cuda::norm(src1, cv::NORM_L2);
 }
-#elif defined(CPU_MODE)
+#elif defined(OPENCV_CPU_MODE)
 /*
  * @dst = @alpha * @src1 * @src2 + @beta * @src3;
  * @flags:GemmFlags
@@ -104,7 +104,7 @@ inline double norml2(InputMatrix src1) {
 inline void gemm(const Matrix &src1, const Matrix &src2, double alpha,
                  const Matrix &src3, double beta, Matrix &dst, int flags) {
 //  LOG(ERROR) << "using matrix";
-#if 1
+#if 0
   const Matrix& _src1 = ((flags & GemmFlags::GEMM_1_T) == 0) ? src1 : src1.t();
   const Matrix& _src2 = ((flags & GemmFlags::GEMM_2_T) == 0) ? src2 : src2.t();
   const Matrix& _src3 = ((flags & GemmFlags::GEMM_3_T) == 0) ? src3 : src3.t();
@@ -160,15 +160,10 @@ inline void subtract(_Type1 src1, _Type2 src2, OutputMatrix dst) {
  * */
 template<typename _Type1, typename _Type2>
 void multiply(const _Type1 src1, const _Type2 src2, OutputMatrix dst) {
-  dst = src1 * src2;
-
+  cv::multiply(src1, src2, dst);
   return;
 }
 
-template<>
-inline void multiply<cv::Mat, cv::Mat>(const cv::Mat src1, const cv::Mat src2, OutputMatrix dst) {
-  dst = src1.mul(src2);
-}
 
 
 /*
