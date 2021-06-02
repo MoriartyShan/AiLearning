@@ -16,11 +16,11 @@ private:
 public:
   GDOptimizer(){}
   const Matrix& UpdateParameter(const Matrix &error, const Matrix &Ok, const Matrix &Ik) override {
-    if (Ok.empty()) {
+    if (MatrixUtils::isEmpty(Ok)) {
       MatrixUtils::gemm(
           error, Ik, _learning_rate, Matrix(), 0, _output, MatrixUtils::GEMM_2_T);
     } else {
-      multiply(error, Ok, _tmp);
+      MatrixUtils::multiply(error, Ok, _tmp);
       MatrixUtils::gemm(
           _tmp, Ik, _learning_rate, Matrix(), 0, _output, MatrixUtils::GEMM_2_T);
     }
@@ -41,17 +41,18 @@ private:
   const Matrix& UpdateParameter(const Matrix &gt) {
     MicrosecondTimer timer(__func__ );
     timer.begin();
-    if (_mt[0].empty() || _vt[0].empty()) {
-      gt.copyTo(_mt[0]);
-      gt.copyTo(_vt[0]);
-      _mt[0].setTo(0);
-      _vt[0].setTo(0);
+    if (MatrixUtils::isEmpty(_mt[0]) || MatrixUtils::isEmpty(_vt[0])) {
+      MatrixUtils::CopyTo(gt, _mt[0]);
+      MatrixUtils::CopyTo(gt, _vt[0]);
+
+      MatrixUtils::setZeros(_mt[0]);
+      MatrixUtils::setZeros(_vt[0]);
     }
     const int8_t cur = _t % 2, update = (_t + 1) % 2;
 
     MatrixUtils::addWeighted(_mt[cur], _belt1, gt, (1 - _belt1), 0, _mt[update]);
 
-    multiply(gt, gt, _gt2);
+    MatrixUtils::multiply(gt, gt, _gt2);
     MatrixUtils::addWeighted(_vt[cur], _belt2, _gt2, (1 - _belt2), 0, _vt[update]);
     double alphat = _alpha * std::sqrt(1 - _belt2t) / (1 - _belt1t);
     MatrixUtils::sqrt(_vt[update], _sqrt_vt);
@@ -70,7 +71,7 @@ public:
   AdamOptimizer(){}
 
   const Matrix& UpdateParameter(const Matrix &error, const Matrix &Ok, const Matrix &Ik) override {
-    if (Ok.empty()) {
+    if (MatrixUtils::isEmpty(Ok)) {
       MatrixUtils::gemm(
           error, Ik, 1, Matrix(), 0, _gt, MatrixUtils::GEMM_2_T);
 

@@ -10,56 +10,6 @@
 #define RAND32BIT() (RAND8BIT() | (RAND8BIT() << 8) | (RAND8BIT() << 16) | (RAND8BIT() << 24) )
 #define RANDOM(from, to) (((RAND32BIT() / (double)0xffffffff)) * (to - from) + (from))
 
-
-namespace cv {
-template<typename T>
-double min(T *data, const int size) {
-  T min = data[0];
-  for (int i = 1; i < size; i++) {
-    if (data[i] < min) {
-      min = data[i];
-    }
-  }
-  return min;
-}
-
-double min(AiLearning::Matrix &matrix) {
-  CHECK(matrix.isContinuous());
-  if (matrix.type() == CV_32FC1) {
-    return min<float>((float *) matrix.data, matrix.cols * matrix.rows);
-  } else if (matrix.type() == CV_64FC1) {
-    return min<double>((double *) matrix.data, matrix.cols * matrix.rows);
-  } else {
-    LOG(FATAL) << "Not implemented " << matrix.type();
-  }
-  return -1;
-}
-
-template<typename T>
-double max(T *data, const int size) {
-  T max = data[0];
-  for (int i = 1; i < size; i++) {
-    if (data[i] > max) {
-      max = data[i];
-    }
-  }
-  return max;
-}
-
-double max(AiLearning::Matrix &matrix) {
-  CHECK(matrix.isContinuous());
-  if (matrix.type() == CV_32FC1) {
-    return max<float>((float *) matrix.data, matrix.cols * matrix.rows);
-  } else if (matrix.type() == CV_64FC1) {
-    return max<double>((double *) matrix.data, matrix.cols * matrix.rows);
-  } else {
-    LOG(FATAL) << "Not implemented " << matrix.type();
-  }
-  return -1;
-}
-
-}
-
 namespace AiLearning {
 #ifdef OPENCV_CUDA_MODE
 cv::cuda::Stream cu_stream;
@@ -117,23 +67,6 @@ bool check(T *data, const int size) {
   return true;
 }
 
-bool check(const Matrix &matrix) {
-  return  true;
-#if 1
-  return cv::checkRange(cv::Mat(matrix));
-#else
-  CHECK(matrix.isContinuous());
-  if (matrix.type() == CV_32FC1) {
-    return check<float>((float *) matrix.data, matrix.cols * matrix.rows);
-  } else if (matrix.type() == CV_64FC1) {
-    return check<double>((double *) matrix.data, matrix.cols * matrix.rows);
-  } else {
-    LOG(FATAL) << "Not implemented " << matrix.type();
-  }
-  return false;
-#endif
-}
-
 template<typename T>
 void Sigmoid(T *data, const int size) {
   for (int i = 0; i < size; i++) {
@@ -173,7 +106,7 @@ void ELU(T *data, const int size) {
   }
 }
 
-void ELU(Matrix &matrix) {
+void ELU(cv::Mat &matrix) {
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     ELU<float>((float *) matrix.data, matrix.cols * matrix.rows);
@@ -197,7 +130,7 @@ void derivativesELU(T *data, const int size) {
   }
 }
 
-void derivativesELU(Matrix &matrix) {
+void derivativesELU(cv::Mat &matrix) {
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     derivativesELU<float>((float *) matrix.data, matrix.cols * matrix.rows);
@@ -220,7 +153,7 @@ void derivativesRELU(T *data, const int size) {
 }
 
 
-void derivativesRELU(Matrix &matrix) {
+void derivativesRELU(cv::Mat &matrix) {
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     derivativesRELU<float>((float *) matrix.data, matrix.cols * matrix.rows);
@@ -240,7 +173,7 @@ void RELU(T *data, const int size) {
   }
 }
 
-void RELU(Matrix &matrix) {
+void RELU(cv::Mat &matrix) {
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     RELU<float>((float *) matrix.data, matrix.cols * matrix.rows);
@@ -271,15 +204,19 @@ void Softmax(Matrix &matrix) {
   CHECK(exp.channels() == 1) << exp.channels();
   scalar sum = cv::sum(exp)(0);
   matrix = exp / sum;
-#else
-  scalar max;
-  minMax(matrix, nullptr, &max);
+#elif defined(OPENCV_CUDA_MODE)
+  double max;
+  cv::cuda::minMax(matrix, nullptr, &max);
   static Matrix exp, tmp1;
 
   MatrixUtils::subtract(matrix, max, tmp1);
   MatrixUtils::exp(tmp1, exp);
   scalar sum = MatrixUtils::sum(exp);
   MatrixUtils::divide(exp, sum, matrix);
+#elif defined(EIGEN_MODE)
+  LOG(ERROR) << "remember to implement this function:" << __func__;
+#else
+#error "dd"
 #endif
   return;
 }
@@ -308,7 +245,7 @@ void Tanh(T *data, const int size) {
   }
 }
 
-void Tanh(Matrix &matrix) {
+void Tanh(cv::Mat &matrix) {
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {
     Tanh<float>((float *) matrix.data, matrix.cols * matrix.rows);

@@ -10,6 +10,8 @@ find_package(gflags REQUIRED)
 find_package(OpenCV REQUIRED core cudaarithm)
 
 set(target_name "basic")
+
+#add_compile_definitions(EIGEN_USE_MKL_ALL OFF)
 add_library(${target_name}
         activer.cc
         constructor.cc
@@ -19,11 +21,16 @@ add_library(${target_name}
         neuron.cc
         )
 
+include_directories(${target_name} PUBLIC
+        "/opt/intel/mkl/include"
+        )
+
 target_link_libraries(${target_name}
         gflags
         glog::glog
         opencv_core
         opencv_cudaarithm
+        /opt/intel/mkl/lib/intel64/libmkl_rt.so
         )
 
 set(target_name "number")
@@ -44,7 +51,7 @@ target_link_libraries(${target_name}
         )
 
 find_package(benchmark)
-if(false AND benchmark_FOUND)
+if(true AND benchmark_FOUND)
     set(target_name "benchmark_test")
 
 #    find_package(CUDA)
@@ -80,7 +87,7 @@ if(false AND benchmark_FOUND)
             )
 
     file(GLOB mkl_libs
-            /opt/intel/mkl/lib/intel64/libmkl_rt.so
+
             )
 
 #
@@ -97,9 +104,10 @@ endif()
 set(target_name "gpu_cpu_compare")
 add_executable(${target_name}
         gpu_cpu_compare.cc)
-
+#add_compile_definitions(EIGEN_USE_MKL_ALL ON)
 target_link_libraries(${target_name}
         opencv_cudaarithm
         glog::glog
+        /opt/intel/mkl/lib/intel64/libmkl_rt.so
         )
 

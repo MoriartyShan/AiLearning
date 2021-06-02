@@ -4,6 +4,7 @@
 #include "basic.h"
 #include "neuron.h"
 #include "common.h"
+#include "matrix_utils.h"
 #include <glog/logging.h>
 #include <gflags/gflags.h>
 #include <fstream>
@@ -21,11 +22,11 @@ void create_std(std::vector<AiLearning::Matrix> &res) {
   const int num = 10;
   res.reserve(num);
   for (int i = 0; i < num; i++) {
-    cv::Mat target(10, 1, CV_TYPE);
-    target.setTo(0.0001);
-    (*target.ptr<scalar>(i)) = 0.9999;
+    AiLearning::Matrix target = AiLearning::MatrixUtils::createMatrix(10, 1, CV_TYPE);
+    AiLearning::MatrixUtils::setTo(target, 0.0001);
+    (*AiLearning::MatrixUtils::get(target, i, 0)) = 0.9999;
     res.emplace_back(target);
-//    LOG(ERROR) << "target [" << i << "] = " << cv::Mat(target).t();
+//    LOG(ERROR) << "target [" << i << "] = " << target;
   }
 }
 
@@ -48,11 +49,7 @@ int create_input(const std::string& line, AiLearning::Matrix& _res) {
   GIVE_VALUE(783);
   //LOG(ERROR) << target.t() << "\n" << res;
   //getchar();
-#ifdef OPENCV_CUDA_MODE
-  _res.upload(res);
-#elif defined(OPENCV_CPU_MODE)
-  _res = res;
-#endif
+  AiLearning::MatrixUtils::CopyTo(res, _res);
   return std;
 }
 
@@ -65,7 +62,8 @@ AiLearning::NetWorks train(const int epoch = 5, AiLearning::NetWorks *input_work
     std::vector<AiLearning::Matrix> std_res_;
     create_std(std_res_);
     for (auto &m : std_res_) {
-      std_res.emplace_back(m);
+      std_res.emplace_back();
+      AiLearning::MatrixUtils::CopyTo(m, std_res.back());
     }
   }
 
@@ -80,11 +78,7 @@ AiLearning::NetWorks train(const int epoch = 5, AiLearning::NetWorks *input_work
       std::getline(file, line);
       if (!line.empty()) {
         int number = create_input(line, input);
-#ifdef OPENCV_CUDA_MODE
-        input.download(input_cpu);
-#elif defined(OPENCV_CPU_MODE)
-        input_cpu = input;
-#endif
+        AiLearning::MatrixUtils::CopyTo(input, input_cpu);
         work.train(input_cpu, std_res[number]);
       }
     }
@@ -94,8 +88,8 @@ AiLearning::NetWorks train(const int epoch = 5, AiLearning::NetWorks *input_work
   work.write_work(root + "/weight.yaml");
   return work;
 }
-template<typename _Matrix>
-std::pair<int, scalar> get_res(const _Matrix& res) {
+
+std::pair<int, scalar> get_res(const cv::Mat& res) {
   const int row = 10;
   CHECK(res.cols == 1 && res.rows == row) << cv::Mat(res).t();
   CHECK(res.type() == CV_TYPE);
@@ -131,7 +125,8 @@ scalar query(const AiLearning::NetWorks &work) {
     std::vector<AiLearning::Matrix> std_res_;
     create_std(std_res_);
     for (auto &m : std_res_) {
-      std_res.emplace_back(m);
+      std_res.emplace_back();
+      AiLearning::MatrixUtils::CopyTo(m, std_res.back());
     }
   }
 
@@ -139,11 +134,7 @@ scalar query(const AiLearning::NetWorks &work) {
     std::getline(file, line);
     if (!line.empty()) {
       int number = create_input(line, input_);
-#ifdef OPENCV_CUDA_MODE
-      input_.download(input);
-#elif defined(OPENCV_CPU_MODE)
-      input = input_;
-#endif
+      AiLearning::MatrixUtils::CopyTo(input_, input);
       cv::Mat res = work.query(input);
       auto real = get_res(std_res[number]);
       auto detect = get_res(res);
@@ -190,8 +181,10 @@ std::pair<scalar, scalar> query(AiLearning::MulNetWork &netWork) {
       int number = create_input(line, input);
       const AiLearning::Matrix &res = netWork.query(input);
       std::pair<int, scalar> real = std::pair<int, scalar>(number, 0.999);
-      auto detect = get_res(cv::Mat(res));
-      double this_loss = cv::norm(cv::Mat(std_res[number]) - cv::Mat(res));
+      cv::Mat cvres;
+      AiLearning::MatrixUtils::CopyTo(res, cvres);
+      auto detect = get_res(cvres);
+      double this_loss = AiLearning::MatrixUtils::norml2(std_res[number] - res);
       loss += this_loss;
 
       LOG(INFO) << "[real, possiblity, detect, possiblity], [" << real.first
@@ -206,8 +199,8 @@ std::pair<scalar, scalar> query(AiLearning::MulNetWork &netWork) {
         wrong++;
       }
 
-      LOG(INFO) << "tar = " << cv::Mat(std_res[number]).t();
-      LOG(INFO) << "res = " << cv::Mat(res).t();
+      LOG(INFO) << "tar = " << std_res[number];
+      LOG(INFO) << "res = " <<res;
     }
   }
   file.close();

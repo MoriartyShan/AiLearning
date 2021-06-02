@@ -19,26 +19,27 @@ Neuron::Neuron(const NeuronConstructor& constructor) :
   std::sort(_next_neurons_idx.begin(), _next_neurons_idx.end());
 
   set_active();
+  _processing = MatrixUtils::createMatrix(_output_data_size, 1, CV_TYPE);
 
-  _processing.create(_output_data_size, 1, CV_TYPE);
   const std::string opt("Adam");
   if (constructor._Whos.empty()) {
     LOG(ERROR) << "constructor input who empty, " << id()
                << "," << _prev_neurons_idx.size();
     if (_prev_neurons_idx.empty()) {
       ///no prev neuron, the first one
-      cv::Mat mat(_output_data_size,
+      Matrix mat = MatrixUtils::createMatrix(_output_data_size,
                   constructor._input_data_size, CV_TYPE);
-      Random(mat);
+      MatrixUtils::Random(mat);
+
       _Whos.emplace_back(mat);
       _optimizers.emplace_back(Optimizer::create(opt));
     } else {
       _Whos.reserve(constructor._prev_neurons_idx.size());
       _optimizers.reserve(constructor._prev_neurons_idx.size());
       for (auto prev : _prev_neurons_idx) {
-        cv::Mat mat(_output_data_size,
+        Matrix mat = MatrixUtils::createMatrix(_output_data_size,
                     _netWork_ptr->neuron(prev)->output_data_size(), CV_TYPE);
-        Random(mat);
+        MatrixUtils::Random(mat);
         _Whos.emplace_back(mat);
         _optimizers.emplace_back(Optimizer::create(opt));
       }
@@ -52,7 +53,9 @@ Neuron::Neuron(const NeuronConstructor& constructor) :
     for (auto &Who : constructor._Whos) {
       CHECK(Who.rows == output_data_size()) << "Who size = "
         << Who.rows << "," << Who.cols << "; node_num =" << output_data_size();
-      _Whos.emplace_back(Who);
+      Matrix matWho;
+      MatrixUtils::CopyTo(Who, matWho);
+      _Whos.emplace_back(matWho);
       _optimizers.emplace_back(Optimizer::create(opt));
     }
   }
@@ -70,7 +73,13 @@ void Neuron::constructor(NeuronConstructor &c) const {
   c._next_neurons_idx = _next_neurons_idx;
   c._output_data_size = _output_data_size;
   if (_Whos.size() == 1) {
+#if defined(OPENCV_CUDA_MODE) || defined(OPENCV_CPU_MODE)
     c._input_data_size = _Whos.front().cols;
+#elif defined(EIGEN_MODE)
+    c._input_data_size = _Whos.front().cols();
+#else
+#error "You must specify one mode"
+#endif
   } else {
     c._input_data_size = 0;
   }
@@ -85,6 +94,10 @@ void Neuron::constructor(NeuronConstructor &c) const {
     _Whos[i].download(c._Whos[i]);
 #elif defined(OPENCV_CPU_MODE)
     c._Whos[i] = _Whos[i].clone();
+#elif defined(EIGEN_MODE)
+    cv::eigen2cv(Who(i), c._Whos[i]);
+#else
+#error "You must specify one mode"
 #endif
   }
   return;
@@ -97,11 +110,11 @@ void Neuron::query(const Matrix &in){
   MatrixUtils::gemm(
     Who(0), in, 1, Matrix(), 0, _processing, 0);
 
-  CHECK(check(processing()))
-      << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
+//  CHECK(check(processing()))
+//      << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
   _activer->active(_processing);
-  CHECK(check(processing()))
-      << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
+//  CHECK(check(processing()))
+//      << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
   timer.end();
 //  LOG(ERROR) << "neuron_" << id() << " output " << _processing.size();
   return;
@@ -113,20 +126,22 @@ void Neuron::query() {
   const size_t prev_num = num_prev();
   _in = nullptr;
   timer1.begin("setto 0");
-  _processing.setTo(0);
+
+  MatrixUtils::setZeros(_processing);
+
   timer1.end();
-  CHECK(check(processing())) << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
+  CHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process\n" << processing();
   for (size_t i = 0; i < prev_num; i++) {
     timer1.begin("gemm");
     MatrixUtils::gemm(Who(i), _netWork_ptr->neuron(_prev_neurons_idx[i])->processing(), 1, _processing, 1, _tmp, 0);
     timer1.end();
     timer1.begin("copyTo");
-    _tmp.copyTo(_processing);
+    MatrixUtils::CopyTo(_tmp, _processing);
     timer1.end();
   }
-  CHECK(check(processing())) << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
+  CHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process \n" << processing() << ",\n" << _tmp;
   _activer->active(_processing);
-  CHECK(check(processing())) << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
+  CHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process \n" << processing();
   timer.end();
   return;
 }
@@ -149,8 +164,8 @@ void Neuron::back_propogate(
     _activer->derivatives(_processing);
   }
 #define TEST_OPTIMIZER true
-  CHECK(check(processing())) << "neuron_" << id() << ",_process "
-      << cv::Mat(processing()).t() << "," << id();
+  CHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process "
+      << processing() << "," << id();
   for (size_t i = 0; i < prev_num; i++) {
     timer1.begin("gemm back");
     MatrixUtils::gemm(
@@ -184,7 +199,7 @@ void Neuron::back_propogate(
 #endif
     }
     timer1.end();
-    CHECK(check(Who(i))) << "neuron_" << id() << ",Who(" << i << ")" << cv::Mat(processing()).t();
+    CHECK(MatrixUtils::check(Who(i))) << "neuron_" << id() << ",Who(" << i << ")\n" << processing();
   }
   if (_in != nullptr) {
     timer1.begin("update who0");
@@ -198,7 +213,7 @@ void Neuron::back_propogate(
                 (error.mul(_processing)) * _in->t();
 #endif
 //    LOG(ERROR) << "update who of the first one";
-    CHECK(check(Who(0))) << "neuron_" << id() << ",Who 0 " << cv::Mat(processing()).t();
+    CHECK(MatrixUtils::check(Who(0))) << "neuron_" << id() << ",Who 0 \n" << processing();
     timer1.end();
   }
   timer.end();
@@ -209,10 +224,10 @@ void Neuron::back_propogate(
 void Neuron::back_propogate(const float learning_rate) {
   MicrosecondTimer timer(__func__);
   timer.begin();
-  if (_error.empty()) {
-    _error.create(output_data_size(), 1, CV_TYPE);
+  if (MatrixUtils::isEmpty(_error)) {
+    _error = MatrixUtils::createMatrix(output_data_size(), 1, CV_TYPE);
   }
-  _error.setTo(0);
+  MatrixUtils::setZeros(_error);
   for (auto next : _next_neurons_idx) {
     MatrixUtils::add(
         _error, _netWork_ptr->neuron(next)->prev_error(id()),
@@ -269,7 +284,7 @@ bool Neuron::check_consistency() const {
 
   const size_t prev_size = _Whos.size();
   for (size_t i = 0; i < prev_size; i++) {
-    const cv::Size who_size = Who(i).size();
+    const cv::Size who_size = MatrixUtils::MatrixSize(Who(i));
     auto &prev_neuron = _netWork_ptr->neuron(_prev_neurons_idx[i]);
     if (who_size.width != prev_neuron->output_data_size()) {
       LOG(ERROR) << "Neuron_" << id() << " who[" << i

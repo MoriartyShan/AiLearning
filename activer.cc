@@ -18,7 +18,7 @@ public:
     MicrosecondTimer timer(__func__);
     timer.begin();
     MatrixUtils::exp(mat, mat);
-    MatrixUtils::add(1, mat, _tmp);
+    MatrixUtils::add(mat,1, _tmp);
     MatrixUtils::divide(mat, _tmp, mat);
     timer.end();
   }
