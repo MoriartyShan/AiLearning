@@ -5,6 +5,7 @@
 #include "common.h"
 #include "matrix_utils.h"
 #include "timer.h"
+#include <fstream>
 
 namespace AiLearning{
 
@@ -110,11 +111,11 @@ void Neuron::query(const Matrix &in){
   MatrixUtils::gemm(
     Who(0), in, 1, Matrix(), 0, _processing, 0);
 
-//  CHECK(check(processing()))
-//      << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
+  CHECK(MatrixUtils::check(processing()))
+      << "neuron_" << id() << ",_process " << processing();
   _activer->active(_processing);
-//  CHECK(check(processing()))
-//      << "neuron_" << id() << ",_process " << cv::Mat(processing()).t();
+  CHECK(MatrixUtils::check(processing()))
+      << "neuron_" << id() << ",_process " << processing();
   timer.end();
 //  LOG(ERROR) << "neuron_" << id() << " output " << _processing.size();
   return;

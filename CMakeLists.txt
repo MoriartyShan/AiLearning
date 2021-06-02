@@ -9,16 +9,38 @@ find_package(ViennaCL REQUIRED)
 find_package(gflags REQUIRED)
 find_package(OpenCV REQUIRED core cudaarithm)
 
-set(target_name "basic")
 
-#add_compile_definitions(EIGEN_USE_MKL_ALL OFF)
+enable_language(CUDA)
+
+set(target_name "cuda_support")
+
+#target_include_directories(${target_name} PUBLIC
+#        "/usr/local/cuda/include"
+#        )
+
+add_library(${target_name}
+        cuda_support.cu
+        )
+
+target_link_libraries(${target_name}
+        gflags
+        glog::glog
+        opencv_core
+        opencv_cudaarithm
+        )
+
+
+set(target_name "basic")
+#SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fopenmp")
+add_compile_definitions(EIGEN_USE_MKL_ALL ON)
 add_library(${target_name}
         activer.cc
-        constructor.cc
         basic.cc
-        optimizer.cc
         common.cc
+        constructor.cc
+        matrix_utils.cc
         neuron.cc
+        optimizer.cc
         )
 
 include_directories(${target_name} PUBLIC
@@ -30,7 +52,8 @@ target_link_libraries(${target_name}
         glog::glog
         opencv_core
         opencv_cudaarithm
-        /opt/intel/mkl/lib/intel64/libmkl_rt.so
+#        /opt/intel/mkl/lib/intel64/libmkl_rt.so
+        cuda_support
         )
 
 set(target_name "number")
@@ -51,7 +74,7 @@ target_link_libraries(${target_name}
         )
 
 find_package(benchmark)
-if(true AND benchmark_FOUND)
+if(false AND benchmark_FOUND)
     set(target_name "benchmark_test")
 
 #    find_package(CUDA)
@@ -69,7 +92,7 @@ if(true AND benchmark_FOUND)
 
 #    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fopenmp")
     add_compile_definitions(VIENNACL_WITH_OPENMP ON)
-    add_compile_definitions(EIGEN_USE_MKL_ALL ON)
+#    add_compile_definitions(EIGEN_USE_MKL_ALL ON)
 #    add_compile_definitions(EIGEN_USE_MKL ON)
 
 #    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
@@ -87,7 +110,7 @@ if(true AND benchmark_FOUND)
             )
 
     file(GLOB mkl_libs
-
+            /opt/intel/mkl/lib/intel64/libmkl_rt.so
             )
 
 #
@@ -96,6 +119,7 @@ if(true AND benchmark_FOUND)
             opencv_cudaarithm
             ${mkl_libs}
             glog::glog
+            cuda_support
             )
 else()
     message(STATUS "benchmark not found")
@@ -109,5 +133,7 @@ target_link_libraries(${target_name}
         opencv_cudaarithm
         glog::glog
         /opt/intel/mkl/lib/intel64/libmkl_rt.so
+        cuda_support
+#        libmkl_sequential.so
         )
 

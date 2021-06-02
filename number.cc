@@ -222,6 +222,10 @@ int main(int argc, char **argv) {
   google::ParseCommandLineFlags(&argc, &argv, false);
   google::InitGoogleLogging(argv[0]); // option --[also]logtostderr
   //        --stderrthreshold=0
+#if false && defined(EIGEN_MODE)
+  Eigen::initParallel();
+  LOG(ERROR) << "set eigen parallel thread number " << Eigen::nbThreads();
+#endif
 
   int seed = time(0);
   LOG(ERROR) << "rand seed = " << seed;

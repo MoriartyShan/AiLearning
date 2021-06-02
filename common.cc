@@ -50,23 +50,33 @@ bool check(T *data, const int size) {
   return true;
 }
 
+void SigmoidSingle(double &p) {
+  if (p > 0) {
+    p = 1 / (std::exp(-p) + 1.0);
+  } else {
+    double exp = std::exp(p);
+    p = exp / (1 + exp);
+  }
+  return;
+}
+
 template<typename T>
 void Sigmoid(T *data, const int size) {
   for (int i = 0; i < size; i++) {
-    if (data[i] > 0) {
-      data[i] = 1 / (std::exp(-data[i]) + 1.0);
-    } else {
-      T exp = std::exp(data[i]);
-      data[i] = exp / (1 + exp);
-    }
+    SigmoidSingle(data[i]);
   }
 }
 
 void Sigmoid(cv::Mat &matrix) {
-#if 0
-  Matrix tmp = -matrix;
-  cv::exp(tmp, matrix);
-  matrix = 1 / (matrix + 1);
+#if 1
+  matrix.forEach<scalar>([](scalar &p, const int * position) {
+    if (p > 0) {
+      p = 1 / (std::exp(-p) + 1.0);
+    } else {
+      scalar exp = std::exp(p);
+      p = exp / (1 + exp);
+    }
+  });
 #else
   CHECK(matrix.isContinuous());
   if (matrix.type() == CV_32FC1) {

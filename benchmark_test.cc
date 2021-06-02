@@ -226,17 +226,89 @@ void test_viennacl_linalg(benchmark::State& state) {
   }
 }
 
+void sigmoid_cv(benchmark::State& state) {
+  cv::Mat mat(rows, cols, CV_64FC1);
+  cv::randu(mat, -0.9999, 0.9999);
+  cv::Mat o = mat.clone();
+  for (auto _ : state) {
+//    o.copyTo(mat);
+    mat.forEach<double>([](double &p, const int * position) {
+      if (p > 0) {
+        p = 1 / (std::exp(-p) + 1.0);
+      } else {
+        double exp = std::exp(p);
+        p = exp / (1 + exp);
+      }
+    });
+  }
+}
+
+
+void sigmoid_for(benchmark::State& state) {
+  cv::Mat mat(rows, cols, CV_64FC1);
+  cv::randu(mat, -0.9999, 0.9999);
+  cv::Mat o = mat.clone();
+  const int size = rows * cols;
+  for (auto _ : state) {
+    double* data = (double*)mat.data;
+    double *to = (double*)o.data;
+    for (int i = 0; i < size; i++) {
+      if (data[i] > 0) {
+        to[i] = 1 / (std::exp(-data[i]) + 1.0);
+      } else {
+        double exp = std::exp(data[i]);
+        to[i] = exp / (1 + exp);
+      }
+    }
+  }
+}
+
+void sigmoid_eigen(benchmark::State& state) {
+  Eigen::MatrixXd matrix = Eigen::MatrixXd::Random(rows, cols);
+  Eigen::MatrixXd pp = matrix;
+  for (auto _ : state) {
+    pp = matrix.unaryExpr([](double p) {
+      double res;
+      if (p > 0) {
+        res = 1 / (std::exp(-p) + 1.0);
+      } else {
+        double exp = std::exp(p);
+        res = exp / (1 + exp);
+      }
+      return res;
+    });
+  }
+}
+
+
+void Sigmoid(cv::cuda::GpuMat &matrix);
+void thrust_sigmoid_cuda(benchmark::State& state) {
+  cv::Mat mat(rows, cols, CV_64FC1);
+  cv::randu(mat, -0.9999, 0.9999);
+  cv::cuda::GpuMat gpumat(mat);
+  for (auto _ : state) {
+    Sigmoid(gpumat);
+  }
+}
+
+
+
 //BENCHMARK(cpumul);
 //BENCHMARK(cpugpumul);
 //BENCHMARK(gpumul);
 //BENCHMARK(gpumulnostream);
 //BENCHMARK(cpugpumulnostream);
 //
-BENCHMARK(test_eigen_parallel);
+//BENCHMARK(test_eigen_parallel);
 //BENCHMARK(cpumulmatrix);
 //BENCHMARK(gpugemm2);
 //BENCHMARK(gpugemm);
 //BENCHMARK(test_viennacl_linalg);
+
+BENCHMARK(sigmoid_for);
+BENCHMARK(sigmoid_cv);
+BENCHMARK(sigmoid_eigen);
+BENCHMARK(thrust_sigmoid_cuda);
 
 //BENCHMARK_MAIN();
 int main(int argc, char** argv) {

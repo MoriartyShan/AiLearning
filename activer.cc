@@ -17,9 +17,7 @@ public:
   void active(Matrix &mat) override {
     MicrosecondTimer timer(__func__);
     timer.begin();
-    MatrixUtils::exp(mat, mat);
-    MatrixUtils::add(mat,1, _tmp);
-    MatrixUtils::divide(mat, _tmp, mat);
+    AiLearning::MatrixUtils::Sigmoid(mat);
     timer.end();
   }
 

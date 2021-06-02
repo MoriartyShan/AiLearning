@@ -6,6 +6,7 @@
 #include <opencv2/cudaarithm.hpp>
 #include <Eigen/Core>
 
+
 void test_addWeighted() {
   const double alpha = 1.2, beta = 4.56, gamma = -4.1;
   const int rows = 200, cols = 300;
@@ -138,6 +139,31 @@ void test_gemm() {
   m1.download(cp3);
   LOG(ERROR) << __func__  << ":dirrerent = " << cv::norm(cp3 - cp1);
 }
+
+void Sigmoid(cv::cuda::GpuMat &matrix);
+
+void test_elementwise() {
+  cv::cuda::GpuMat gpuMat;
+  cv::Mat cpumat(100, 100, CV_64FC1);
+  cv::randu(cpumat, -100, 100);
+  gpuMat.upload(cpumat);
+
+  cpumat.forEach<double>([](double &p, const int * position) {
+    if (p > 0) {
+      p = 1 / (std::exp(-p) + 1.0);
+    } else {
+      double exp = std::exp(p);
+      p = exp / (1 + exp);
+    }
+  });
+
+  Sigmoid(gpuMat);
+
+  cv::Mat gpudown(gpuMat);
+  LOG(ERROR) << "different = " << cv::norm(gpudown - cpumat);
+}
+
+
 using EigenMatrix = Eigen::Matrix<
   double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 int main(int argc, char **argv) {
@@ -151,17 +177,37 @@ int main(int argc, char **argv) {
 //  test_subtract();
 //  test_gemm();
 
-  EigenMatrix m = EigenMatrix::Random(2, 3), n = m;
-//  n.setRandom();
-  m = m.array() + 1;
-  n = m.cwiseSqrt();
-  auto p = m;
-  p = m.array().sqrt();
-  LOG(ERROR) << "m:\n" << m;
-  LOG(ERROR) << "n:\n" << m.cwiseSqrt();
-  LOG(ERROR) << "p:\n" << p;
+//  EigenMatrix m = EigenMatrix::Random(2, 3), n = m;
+////  n.setRandom();
+//  m = m.array() + 1;
+//  n = m.cwiseSqrt();
+//  auto p = m;
+//  p = m.array().sqrt();
+//  LOG(ERROR) << "m:\n" << m;
+//  LOG(ERROR) << "n:\n" << m.cwiseSqrt();
+//  LOG(ERROR) << "p:\n" << p;
 
+  cv::Mat mat(3, 2, CV_32FC1);
 
+  for (int i = 0; i < mat.rows; i++) {
+    for (int j = 0; j < mat.cols; j++) {
+      mat.at<float>(i, j) = i * mat.cols + j;
+    }
+  }
+
+  LOG(ERROR) << "mat = \n" << mat;
+
+  mat.forEach<float>([](float &p, const int * position) {
+    p = std::exp(p);
+//    if (p > 0) {
+//      p = 1 / (std::exp(-p) + 1.0);
+//    } else {
+//      float exp = std::exp(p);
+//      p = exp / (1 + exp);
+//    }
+  });
+  LOG(ERROR) << "mat = \n" << mat;
+  test_elementwise();
 //  m.setConstant(3);
 //  EigenMatrix p = m.array().sqrt();
 
