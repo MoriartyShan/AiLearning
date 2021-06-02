@@ -22,10 +22,11 @@ void create_std(std::vector<AiLearning::Matrix> &res) {
   const int num = 10;
   res.reserve(num);
   for (int i = 0; i < num; i++) {
-    AiLearning::Matrix target = AiLearning::MatrixUtils::createMatrix(10, 1, CV_TYPE);
-    AiLearning::MatrixUtils::setTo(target, 0.0001);
-    (*AiLearning::MatrixUtils::get(target, i, 0)) = 0.9999;
-    res.emplace_back(target);
+    cv::Mat target(10, 1, CV_TYPE);
+    target.setTo(0.0001);
+    target.at<scalar>(i, 0) = 0.9999;
+    res.emplace_back();
+    AiLearning::MatrixUtils::CopyTo(target, res.back());
 //    LOG(ERROR) << "target [" << i << "] = " << target;
   }
 }
@@ -184,7 +185,9 @@ std::pair<scalar, scalar> query(AiLearning::MulNetWork &netWork) {
       cv::Mat cvres;
       AiLearning::MatrixUtils::CopyTo(res, cvres);
       auto detect = get_res(cvres);
-      double this_loss = AiLearning::MatrixUtils::norml2(std_res[number] - res);
+      AiLearning::Matrix error;
+      AiLearning::MatrixUtils::subtract(std_res[number], res, error);
+      double this_loss = AiLearning::MatrixUtils::norml2(error);
       loss += this_loss;
 
       LOG(INFO) << "[real, possiblity, detect, possiblity], [" << real.first
@@ -200,7 +203,7 @@ std::pair<scalar, scalar> query(AiLearning::MulNetWork &netWork) {
       }
 
       LOG(INFO) << "tar = " << std_res[number];
-      LOG(INFO) << "res = " <<res;
+      LOG(INFO) << "res = " << res;
     }
   }
   file.close();

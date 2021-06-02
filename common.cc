@@ -22,23 +22,6 @@ void Random(T *data, const int size) {
   }
 }
 
-void Random(cv::cuda::GpuMat &matrix) {
-  CHECK(matrix.type() == CV_TYPE);
-#if 1
-  cv::Mat r(matrix);
-  Random(r);
-  matrix.upload(r);
-#else
-  CHECK(matrix.isContinuous());
-  if (matrix.type() == CV_32FC1) {
-    return Random<float>((float *) matrix.data, matrix.cols * matrix.rows);
-  } else if (matrix.type() == CV_64FC1) {
-    return Random<double>((double *) matrix.data, matrix.cols * matrix.rows);
-  } else {
-    LOG(FATAL) << "Not implemented " << matrix.type();
-  }
-#endif
-}
 
 void Random(cv::Mat &matrix) {
   CHECK(matrix.type() == CV_TYPE);
@@ -197,7 +180,8 @@ void derivativesSoftmax(Matrix &matrix) {
 
 void Softmax(Matrix &matrix) {
 #ifdef OPENCV_CPU_MODE
-  scalar max = cv::max(matrix);
+  LOG(FATAL) << "implement";
+  scalar max = 1;// cv::max(matrix);
   Matrix exp;
   matrix = matrix - max;
   cv::exp(matrix, exp);

@@ -17,6 +17,49 @@ enum GemmFlags {
   GEMM_3_T = 4 //!< transposes src3
 };
 #ifdef OPENCV_CUDA_MODE
+inline Matrix createMatrix(int rows, int cols, int type) {
+  return Matrix(rows, cols, type);
+}
+
+inline bool isEmpty(InputMatrix mat) {
+  return mat.empty();
+}
+
+inline void Random(Matrix &matrix) {
+  CHECK(matrix.type() == CV_TYPE);
+  cv::Mat r(matrix);
+  AiLearning::Random(r);
+  matrix.upload(r);
+}
+
+inline void CopyTo(InputMatrix src, OutputMatrix dst) {
+  src.copyTo(dst);
+}
+
+inline void CopyTo(InputMatrix src, cv::Mat& dst) {
+  src.download(dst);
+}
+
+inline void CopyTo(const cv::Mat& src, OutputMatrix dst) {
+  dst.upload(src);
+}
+
+inline void setZeros(InputOutputMatrix mat) {
+  mat.setTo(0);
+}
+
+inline void setTo(InputOutputMatrix mat, double v) {
+  mat.setTo(v);
+}
+
+inline bool check(const Matrix &matrix) {
+  return cv::checkRange(cv::Mat(matrix));
+}
+
+inline cv::Size MatrixSize(InputMatrix mat) {
+  return mat.size();
+}
+
 /*
  * @dst = @alpha * @src1 * @src2 + @beta * @src3;
  * @flags:GemmFlags
@@ -97,6 +140,43 @@ inline double norml2(InputMatrix src1) {
   return cv::cuda::norm(src1, cv::NORM_L2);
 }
 #elif defined(OPENCV_CPU_MODE)
+inline Matrix createMatrix(int rows, int cols, int type) {
+  return Matrix(rows, cols, type);
+}
+
+inline bool isEmpty(InputMatrix mat) {
+  return mat.empty();
+}
+
+inline void CopyTo(InputMatrix src, OutputMatrix dst) {
+  src.copyTo(dst);
+}
+
+inline void setZeros(InputOutputMatrix mat) {
+  mat.setTo(0);
+}
+
+inline void setTo(InputOutputMatrix mat, double v) {
+  mat.setTo(v);
+}
+
+inline void Random(Matrix &matrix) {
+  AiLearning::Random(matrix);
+}
+
+inline scalar* get(InputOutputMatrix mat, int i, int j) {
+  CHECK(mat.type() == CV_TYPE) << mat.type() << "," << CV_TYPE;
+  return mat.ptr<scalar>(i, j);
+}
+
+inline cv::Size MatrixSize(InputMatrix mat) {
+  return mat.size();
+}
+
+inline bool check(const Matrix &matrix) {
+  return cv::checkRange(matrix);
+}
+
 /*
  * @dst = @alpha * @src1 * @src2 + @beta * @src3;
  * @flags:GemmFlags
@@ -225,6 +305,7 @@ inline void setZeros(InputOutputMatrix mat) {
 inline void setTo(InputOutputMatrix mat, double v) {
   mat.setConstant(v);
 }
+
 inline scalar* get(InputOutputMatrix mat, int i, int j) {
   return &mat(i, j);
 }

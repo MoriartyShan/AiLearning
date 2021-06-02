@@ -12,6 +12,12 @@
 
 #ifdef OPENCV_CUDA_MODE
 #include <opencv2/cudaarithm.hpp>
+
+inline std::ostream& operator <<(std::ostream& os, const cv::cuda::GpuMat& m) {
+  os << cv::Mat(m);
+  return os;
+}
+
 #elif defined(OPENCV_CPU_MODE)
 
 #elif defined(EIGEN_MODE)
@@ -38,11 +44,6 @@ using Matrix = cv::Mat;
 extern cv::cuda::Stream cu_stream;
 using Matrix = cv::cuda::GpuMat;
 
-inline std::ostream& operator <<(std::ostream& os, const cv::cuda::GpuMat& m) {
-  os << cv::Mat(m);
-  return os;
-}
-
 #elif defined(EIGEN_MODE)
 using Matrix = Eigen::Matrix<
   scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
@@ -67,9 +68,6 @@ void derivativesRELU(Matrix &matrix);
 
 void Tanh(Matrix &matrix);
 void derivateTanh(Matrix &matrix);
-#ifdef OPENCV_CUDA_MODE
-void Random(cv::cuda::GpuMat &matrix);
-#endif
 void Random(cv::Mat &matrix);
 
 
