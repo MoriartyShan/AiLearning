@@ -52,7 +52,7 @@ Neuron::Neuron(const NeuronConstructor& constructor) :
 
     LOG(ERROR) << "constructor input who has, " << id() << "," << constructor._Whos.size();
     for (auto &Who : constructor._Whos) {
-      CHECK(Who.rows == output_data_size()) << "Who size = "
+      ACHECK(Who.rows == output_data_size()) << "Who size = "
         << Who.rows << "," << Who.cols << "; node_num =" << output_data_size();
       Matrix matWho;
       MatrixUtils::CopyTo(Who, matWho);
@@ -111,10 +111,10 @@ void Neuron::query(const Matrix &in){
   MatrixUtils::gemm(
     Who(0), in, 1, Matrix(), 0, _processing, 0);
 
-  CHECK(MatrixUtils::check(processing()))
+  ACHECK(MatrixUtils::check(processing()))
       << "neuron_" << id() << ",_process " << processing();
   _activer->active(_processing);
-  CHECK(MatrixUtils::check(processing()))
+  ACHECK(MatrixUtils::check(processing()))
       << "neuron_" << id() << ",_process " << processing();
   timer.end();
 //  LOG(ERROR) << "neuron_" << id() << " output " << _processing.size();
@@ -131,7 +131,7 @@ void Neuron::query() {
   MatrixUtils::setZeros(_processing);
 
   timer1.end();
-  CHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process\n" << processing();
+  ACHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process\n" << processing();
   for (size_t i = 0; i < prev_num; i++) {
     timer1.begin("gemm");
     MatrixUtils::gemm(Who(i), _netWork_ptr->neuron(_prev_neurons_idx[i])->processing(), 1, _processing, 1, _tmp, 0);
@@ -140,9 +140,9 @@ void Neuron::query() {
     MatrixUtils::CopyTo(_tmp, _processing);
     timer1.end();
   }
-  CHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process \n" << processing() << ",\n" << _tmp;
+  ACHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process \n" << processing() << ",\n" << _tmp;
   _activer->active(_processing);
-  CHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process \n" << processing();
+  ACHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process \n" << processing();
   timer.end();
   return;
 }
@@ -165,7 +165,7 @@ void Neuron::back_propogate(
     _activer->derivatives(_processing);
   }
 #define TEST_OPTIMIZER true
-  CHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process "
+  ACHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process "
       << processing() << "," << id();
   for (size_t i = 0; i < prev_num; i++) {
     timer1.begin("gemm back");
@@ -200,11 +200,11 @@ void Neuron::back_propogate(
 #endif
     }
     timer1.end();
-    CHECK(MatrixUtils::check(Who(i))) << "neuron_" << id() << ",Who(" << i << ")\n" << processing();
+    ACHECK(MatrixUtils::check(Who(i))) << "neuron_" << id() << ",Who(" << i << ")\n" << processing();
   }
   if (_in != nullptr) {
     timer1.begin("update who0");
-    CHECK(prev_num == 0) << prev_num << "," << id();
+    ACHECK(prev_num == 0) << prev_num << "," << id();
 #if TEST_OPTIMIZER
     MatrixUtils::add( Who(0),
         _optimizers[0]->UpdateParameter(error, processing(), *_in),
@@ -214,7 +214,7 @@ void Neuron::back_propogate(
                 (error.mul(_processing)) * _in->t();
 #endif
 //    LOG(ERROR) << "update who of the first one";
-    CHECK(MatrixUtils::check(Who(0))) << "neuron_" << id() << ",Who 0 \n" << processing();
+    ACHECK(MatrixUtils::check(Who(0))) << "neuron_" << id() << ",Who 0 \n" << processing();
     timer1.end();
   }
   timer.end();
@@ -324,9 +324,9 @@ MulNetWork::MulNetWork(const std::vector<NeuronConstructor> &constructors) {
   const size_t size = constructors.size();
   for (size_t i = 0; i < size; i++) {
     _neurons.emplace_back(std::make_shared<Neuron>(constructors[i]));
-    CHECK(_neurons.back()->id() == i) << _neurons.back()->id() << "," << i;
+    ACHECK(_neurons.back()->id() == i) << _neurons.back()->id() << "," << i;
   }
-  CHECK(check_consistency());
+  ACHECK(check_consistency());
 }
 
 const Matrix& MulNetWork::query(const Matrix &in) {
@@ -359,7 +359,7 @@ scalar MulNetWork::train(const Matrix &in, const Matrix &target, const float lea
 
 void MulNetWork::write(const std::string &path, const bool output_matrix) const {
   cv::FileStorage fs(path, cv::FileStorage::WRITE);
-  CHECK(fs.isOpened()) << path << " open fail";
+  ACHECK(fs.isOpened()) << path << " open fail";
   NeuronConstructor constructor;
 
   fs << "neurons_num" << (int)neurons_num();
@@ -372,13 +372,13 @@ void MulNetWork::write(const std::string &path, const bool output_matrix) const 
 
 void MulNetWork::read(const std::string &path) {
   cv::FileStorage fs(path, cv::FileStorage::READ);
-  CHECK(fs.isOpened()) << "path:" << path << " open fail";
+  ACHECK(fs.isOpened()) << "path:" << path << " open fail";
   int layer_nb;
   NeuronConstructor constructor;
   constructor._netWork_ptr = this;
 
   cv::read(fs["neurons_num"], layer_nb, -1);
-  CHECK(layer_nb > 0) << layer_nb;
+  ACHECK(layer_nb > 0) << layer_nb;
   _neurons.reserve(layer_nb);
 
   for (int i = 0; i < layer_nb; i++) {

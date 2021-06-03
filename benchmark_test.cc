@@ -14,19 +14,28 @@
 //#include "viennacl/linalg/cuda/matrix_operations.hpp"
 #include "viennacl/tools/random.hpp"
 
+#include "matrix_utils.h"
+#if 1
 const int rows = 784, cols = 100, rows2 = cols, cols2 = 1;
-const double alpha = 11.3, belta = 1.5;
+#else
+const int rows = 784, cols = 1000, rows2 = cols, cols2 = 1;
+#endif
+const double alpha = 11.3, beta = 1.5, mgamma = 100.0;
+#ifndef CV_TYPE
 #if 0
-using Scalar_ = float;
+using scalar = float;
 #define CV_TYPE CV_32FC1
 #else
-using Scalar_ = double;
+using scalar = double;
 #define CV_TYPE CV_64FC1
+#endif
+#else
+using scalar = AiLearning::scalar;
 #endif
 
 void test_viennacl_linalg_cuda(benchmark::State& state) {
-  viennacl::matrix<Scalar_> m1(rows, cols), m2(rows2, cols2), m3(rows, cols2), m4(rows, cols2);
-  viennacl::tools::uniform_random_numbers<Scalar_> randomNumber;
+  viennacl::matrix<scalar> m1(rows, cols), m2(rows2, cols2), m3(rows, cols2), m4(rows, cols2);
+  viennacl::tools::uniform_random_numbers<scalar> randomNumber;
 #define RandomViennacl(matrix) do { \
   for (unsigned int i = 0; i < matrix.size1(); ++i)\
     for (unsigned int j = 0; j < matrix.size2(); ++j)\
@@ -124,7 +133,7 @@ static void cpumulmatrix(benchmark::State& state) {
   cv::randu(m3, -100, 100);
   cv::randu(m4, -100, 100);
   for (auto _ : state) {
-    m4 = alpha * m1 * m2 + belta * m3;
+    m4 = alpha * m1 * m2 + beta * m3;
   }
 }
 
@@ -149,7 +158,7 @@ static void gpugemm(benchmark::State& state) {
   m4.upload(tmp);
 
   for (auto _ : state) {
-    cv::cuda::gemm(m1, m2, alpha, m3, belta, m4, 0, stream);
+    cv::cuda::gemm(m1, m2, alpha, m3, beta, m4, 0, stream);
     m4.release();
   }
 }
@@ -177,7 +186,7 @@ static void gpugemm2(benchmark::State& state) {
 
   for (auto _ : state) {
     m1.upload(cm1);
-    cv::cuda::gemm(m1, m2, alpha, m3, belta, m1, 0, stream);
+    cv::cuda::gemm(m1, m2, alpha, m3, beta, m1, 0, stream);
   }
 }
 
@@ -185,7 +194,7 @@ static void gpugemm2(benchmark::State& state) {
 void test_eigen_parallel(benchmark::State& state) {
   int c = 0;
   LOG(ERROR) << "eigen thread = " << Eigen::nbThreads() << "," << state.thread_index << "," << state.threads;
-  Eigen::Matrix<Scalar_, Eigen::Dynamic, Eigen::Dynamic> m1, m2, m3, m4;
+  Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic> m1, m2, m3, m4;
 
   m1.resize(rows, cols);
   m1.setRandom();
@@ -201,14 +210,14 @@ void test_eigen_parallel(benchmark::State& state) {
 
   for (auto _ : state) {
     c++;
-    m4 = alpha * m1 * m2 + belta * m3;
+    m4 = alpha * m1 * m2 + beta * m3;
   }
   LOG(ERROR) << "eigen end = " << Eigen::nbThreads() << "," << state.thread_index << "," << state.threads << "," << c;
 }
 
 void test_viennacl_linalg(benchmark::State& state) {
-  viennacl::matrix<Scalar_> m1(rows, cols), m2(rows2, cols2), m3(rows, cols2), m4(rows, cols2);
-  viennacl::tools::uniform_random_numbers<Scalar_> randomNumber;
+  viennacl::matrix<scalar> m1(rows, cols), m2(rows2, cols2), m3(rows, cols2), m4(rows, cols2);
+  viennacl::tools::uniform_random_numbers<scalar> randomNumber;
 #define RandomViennacl(matrix) do { \
   for (unsigned int i = 0; i < matrix.size1(); ++i)\
     for (unsigned int j = 0; j < matrix.size2(); ++j)\
@@ -222,7 +231,7 @@ void test_viennacl_linalg(benchmark::State& state) {
 
 #undef RandomViennacl
   for (auto _ : state) {
-    m4 = alpha * viennacl::linalg::prod(m1, m2) + belta * m3;
+    m4 = alpha * viennacl::linalg::prod(m1, m2) + beta * m3;
   }
 }
 
@@ -281,7 +290,7 @@ void sigmoid_eigen(benchmark::State& state) {
 }
 
 
-void Sigmoid(cv::cuda::GpuMat &matrix);
+void Sigmoid(cv::cuda::GpuMat &matrix) {};
 void thrust_sigmoid_cuda(benchmark::State& state) {
   cv::Mat mat(rows, cols, CV_64FC1);
   cv::randu(mat, -0.9999, 0.9999);
@@ -291,6 +300,101 @@ void thrust_sigmoid_cuda(benchmark::State& state) {
   }
 }
 
+using namespace AiLearning;
+
+void add_ele_row(benchmark::State& state) {
+  Eigen::Matrix<
+    scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> mat1(rows, cols), mat2(rows, cols), mat3(rows, cols);
+  mat1.setRandom();
+  mat2.setRandom();
+  mat3.setRandom();
+  for (auto _ : state) {
+    AiLearning::MatrixUtils::add(mat1, mat2, mat3);
+  }
+}
+
+void add_ele_col(benchmark::State& state) {
+  Eigen::Matrix<
+    scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> mat1(rows, cols), mat2(rows, cols), mat3(rows, cols);
+  mat1.setRandom();
+  mat2.setRandom();
+  mat3.setRandom();
+  for (auto _ : state) {
+    mat3 = mat1 + mat2;
+  }
+}
+
+void add_ele_Xf(benchmark::State& state) {
+  Eigen::MatrixXf mat1(rows, cols), mat2(rows, cols), mat3(rows, cols);
+  mat1.setRandom();
+  mat2.setRandom();
+  mat3.setRandom();
+  for (auto _ : state) {
+    mat3 = mat1 + mat2;
+  }
+}
+
+void gemm(benchmark::State& state) {
+  Eigen::Matrix<
+    scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+    mat1(rows, cols), mat2(rows, cols), mat3(rows, cols), mat4(rows, cols);
+  mat1.setRandom();
+  mat2.setRandom();
+  mat3.setRandom();
+  mat4.setRandom();
+  for (auto _ : state) {
+    MatrixUtils::gemm(mat1, mat2, alpha, mat3, beta, mat4, 0);
+  }
+}
+
+void addWeighted(benchmark::State& state) {
+  Eigen::Matrix<
+    scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+    mat1(rows, cols), mat2(rows, cols), mat3(rows, cols);
+  mat1.setRandom();
+  mat2.setRandom();
+  mat3.setRandom();
+  for (auto _ : state) {
+    MatrixUtils::addWeighted(mat1, alpha, mat2, beta, mgamma, mat3);
+  }
+}
+
+#define TestFunctionABC(name) void name(benchmark::State& state) {\
+    Eigen::Matrix<\
+      scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>\
+      mat1(rows, cols), mat2(rows, cols), mat3(rows, cols);\
+    mat1.setRandom();\
+    mat2.setRandom();\
+    mat3.setRandom();\
+    for (auto _ : state) {\
+      MatrixUtils::name(mat1, mat2, mat2);\
+    }\
+  }\
+  void name(benchmark::State& state)
+
+#define TestFunctionIO(name) \
+void name(benchmark::State& state) {\
+  Eigen::Matrix<\
+    scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>\
+    mat1(rows, cols), mat2(rows, cols);\
+  mat1.setRandom();          \
+  mat1.array() += 4;                           \
+  mat2.setRandom();\
+  for (auto _ : state) {\
+    MatrixUtils::name(mat1, mat2);\
+  }\
+}\
+void name(benchmark::State& state)
+
+
+
+TestFunctionIO(sqrt);
+
+TestFunctionABC(multiply);
+TestFunctionABC(subtract);
+TestFunctionABC(divide);
+TestFunctionABC(add);
+TestFunctionIO(exp);
 
 
 //BENCHMARK(cpumul);
@@ -305,15 +409,87 @@ void thrust_sigmoid_cuda(benchmark::State& state) {
 //BENCHMARK(gpugemm);
 //BENCHMARK(test_viennacl_linalg);
 
-BENCHMARK(sigmoid_for);
-BENCHMARK(sigmoid_cv);
-BENCHMARK(sigmoid_eigen);
-BENCHMARK(thrust_sigmoid_cuda);
+//BENCHMARK(sigmoid_for);
+//BENCHMARK(sigmoid_cv);
+//BENCHMARK(sigmoid_eigen);
+//BENCHMARK(thrust_sigmoid_cuda);
+
+//BENCHMARK(add_ele_Xf);
+//BENCHMARK(add_ele_col);
+BENCHMARK(add);
+BENCHMARK(gemm);
+BENCHMARK(addWeighted);
+BENCHMARK(multiply);
+BENCHMARK(subtract);
+BENCHMARK(divide);
+BENCHMARK(sqrt);
+BENCHMARK(exp);
+
+
+
+namespace AiLearning{
+namespace MatrixUtils{
+void raw_sqrt_ptr(const scalar *src, scalar *dst, const int size) {
+  for (size_t i = 0; i < size; i++) {
+    dst[i] = std::sqrt(src[i]);
+  }
+  return;
+}
+
+void new_sqrt(InputMatrix src, OutputMatrix dst) {
+  if (MatrixUtils::isEmpty(dst)) {
+    dst.resize(src.rows(), src.cols());
+  }
+
+  const int split = 6;
+  const size_t n = src.rows() * src.cols() / split;
+  const scalar *_src = src.data();
+  scalar *_dst = dst.data();
+
+#pragma omp parallel for
+  for (int i = 0; i < split; i++) {
+    if (i != (split - 1)) {
+      raw_sqrt_ptr(_src + i * n, _dst + i * n, n);
+    } else {
+      raw_sqrt_ptr(_src + i * n, _dst + i * n, src.rows() * src.cols() - n * i);
+    }
+  }
+
+  return;
+}
+
+
+void raw_sqrt(InputMatrix src, OutputMatrix dst) {
+  if (MatrixUtils::isEmpty(dst)) {
+    dst.resize(src.rows(), src.cols());
+  }
+
+  const int split = 1;
+  const size_t n = src.rows() * src.cols() / split;
+  const scalar *_src = src.data();
+  scalar *_dst = dst.data();
+  raw_sqrt_ptr(_src, _dst, n);
+
+  return;
+}
+}
+}
+
+
+TestFunctionIO(raw_sqrt);
+TestFunctionIO(new_sqrt);
+
+BENCHMARK(sqrt);
+BENCHMARK(raw_sqrt);
+BENCHMARK(new_sqrt);
+
 
 //BENCHMARK_MAIN();
 int main(int argc, char** argv) {
   Eigen::initParallel();
-//  Eigen::setNbThreads(8);
+  Eigen::setNbThreads(6);
+  LOG(ERROR) << "set eigen parallel thread number " << Eigen::nbThreads();
+
   ::benchmark::Initialize(&argc, argv);
   if (::benchmark::ReportUnrecognizedArguments(argc, argv))
     return 1;

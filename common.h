@@ -21,15 +21,20 @@ inline std::ostream& operator <<(std::ostream& os, const cv::cuda::GpuMat& m) {
 #elif defined(OPENCV_CPU_MODE)
 
 #elif defined(EIGEN_MODE)
+#ifndef EIGEN_USE_MKL_ALL
+#define EIGEN_USE_MKL_ALL true
+#endif
 #include <Eigen/Core>
 #include <opencv2/core/eigen.hpp>
 #else
 #error "You must specify one mode"
 #endif
 
+#define ACHECK while(false)CHECK
+
 namespace AiLearning {
 
-#if 1
+#if 0
 using scalar = float;
 #define CV_TYPE CV_32FC1
 #else

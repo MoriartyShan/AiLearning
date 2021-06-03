@@ -71,6 +71,8 @@ public:
   AdamOptimizer(){}
 
   const Matrix& UpdateParameter(const Matrix &error, const Matrix &Ok, const Matrix &Ik) override {
+    MicrosecondTimer timer(__func__ );
+    timer.begin();
     if (MatrixUtils::isEmpty(Ok)) {
       MatrixUtils::gemm(
           error, Ik, 1, Matrix(), 0, _gt, MatrixUtils::GEMM_2_T);
@@ -80,6 +82,7 @@ public:
       MatrixUtils::gemm(
           _tmp, Ik, 1, Matrix(), 0, _gt, MatrixUtils::GEMM_2_T);
     }
+    timer.end();
     return UpdateParameter(_gt);
   }
 

@@ -5,6 +5,7 @@
 #include "neuron.h"
 #include "common.h"
 #include "matrix_utils.h"
+#include "timer.h"
 #include <glog/logging.h>
 #include <gflags/gflags.h>
 #include <fstream>
@@ -222,7 +223,7 @@ int main(int argc, char **argv) {
   google::ParseCommandLineFlags(&argc, &argv, false);
   google::InitGoogleLogging(argv[0]); // option --[also]logtostderr
   //        --stderrthreshold=0
-#if false && defined(EIGEN_MODE)
+#if true && defined(EIGEN_MODE)
   Eigen::initParallel();
   LOG(ERROR) << "set eigen parallel thread number " << Eigen::nbThreads();
 #endif
@@ -242,6 +243,7 @@ int main(int argc, char **argv) {
     netWork.write("/home/moriarty/init_weight.yaml", true);
     const std::string root = FLAGS_data + "/";
     const std::string data = FLAGS_train;
+    AiLearning::MicrosecondTimer timer("timer");
     const int epoch = 100;
     scalar learning_rate = FLAGS_learning_rate;
     int best_epoch = 0;
@@ -256,7 +258,7 @@ int main(int argc, char **argv) {
       CHECK(file.is_open()) << root + data << " open fail";
       std::string line;
       AiLearning::Matrix input;
-
+      timer.begin();
       while (!file.eof()) {
         std::getline(file, line);
         if (!line.empty()) {
@@ -269,6 +271,7 @@ int main(int argc, char **argv) {
 //          LOG(ERROR) << "trained data " << train_size;
 //        }
       }
+      int64_t cost = timer.end();
       file.close();
 
       std::pair<scalar, scalar> query_result = query(netWork);
@@ -283,13 +286,14 @@ int main(int argc, char **argv) {
       }
 
       LOG(ERROR) << "epoch[" << e << "]:" << std::setprecision(8)
-                 << "accuracy," << query_result.first
-                 << ",query loss," << query_result.second
-                 << ",best epoch, " << best_epoch
-                 << ",best loss, " << best_loss
-                 << ",total loss," << loss
-                 << ",dataset size," << train_size
-                 << ",train loss," << loss/train_size
+                 << " cost time, " << cost/1000000.0 << " sec"
+                 << ", accuracy," << query_result.first
+                 << ", query loss," << query_result.second
+                 << ", best epoch, " << best_epoch
+                 << ", best loss, " << best_loss
+                 << ", total loss," << loss
+                 << ", dataset size," << train_size
+                 << ", train loss," << loss/train_size
                  << "," << (bad_condition ? "bad" : "good");
 
       last_loss = loss;

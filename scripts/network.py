@@ -13,13 +13,13 @@ y_train = y_train_all[5000:]
 model = tf.keras.models.Sequential()
 
 model.add(tf.keras.layers.Flatten(input_shape=(28, 28)))
-model.add(tf.keras.layers.Dense(150, activation='sigmoid'))
-#model.add(tf.keras.layers.Dense(100, activation='sigmoid'))
-model.add(tf.keras.layers.Dropout(0.2))
+# model.add(tf.keras.layers.Dense(150, activation='sigmoid'))
+model.add(tf.keras.layers.Dense(100, activation='sigmoid'))
+# model.add(tf.keras.layers.Dropout(0.2))
 model.add(tf.keras.layers.Dense(10, activation='sigmoid'))
 
 model.compile(optimizer='adam',
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
-model.fit(x_train, y_train, epochs=20, validation_data=(x_valid, y_valid))
+model.fit(x_train_all, y_train_all, batch_size=1, epochs=100, validation_data=(x_valid, y_valid))
 model.evaluate(x_test, y_test)

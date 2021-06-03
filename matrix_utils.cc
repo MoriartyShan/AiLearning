@@ -2,6 +2,7 @@
 // Created by moriarty on 6/2/21.
 //
 #include "matrix_utils.h"
+#include "timer.h"
 
 
 namespace AiLearning {
@@ -400,12 +401,18 @@ void gemm(InputMatrix src1, InputMatrix src2, double alpha,
  * _Type1 and _Type2 is matrix or scalar
  * */
 void add(InputMatrix src1, scalar src2, OutputMatrix dst) {
+  MicrosecondTimer timer(__func__ );
+  timer.begin();
   dst = src1.array() + src2;
+  timer.end();
   return;
 }
 
 void add(InputMatrix src1, InputMatrix src2, OutputMatrix dst) {
+  MicrosecondTimer timer(__func__ );
+  timer.begin();
   dst = src1 + src2;
+  timer.end();
   return;
 }
 
@@ -475,11 +482,14 @@ void sqrt(InputMatrix src, OutputMatrix dst) {
   if (isEmpty(dst)) {
     dst.resize(src.rows(), src.cols());
   }
-  dst = src.cwiseSqrt();
+  dst = src.array().sqrt();
   return;
 }
 
 void exp(InputMatrix src, OutputMatrix dst) {
+  if (isEmpty(dst)) {
+    dst.resize(src.rows(), src.cols());
+  }
   dst = src.array().exp();
   return;
 }

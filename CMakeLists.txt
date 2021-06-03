@@ -30,9 +30,16 @@ target_link_libraries(${target_name}
         )
 
 
-set(target_name "basic")
-#SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fopenmp")
+
+SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fopenmp")
 add_compile_definitions(EIGEN_USE_MKL_ALL ON)
+
+set(target_name "basic")
+message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
+
+#add_compile_definitions(EIGEN_USE_MKL ON)
+#add_compile_definitions(MKL_DIRECT_CALL ON)
+add_compile_options(-m64)
 add_library(${target_name}
         activer.cc
         basic.cc
@@ -47,12 +54,55 @@ include_directories(${target_name} PUBLIC
         "/opt/intel/mkl/include"
         )
 
+
+set(mkl_libs
+        #1
+
+        #2
+#                    /opt/intel/mkl/lib/intel64/libmkl_rt.so
+
+        #3
+#                    /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.so
+#                    /opt/intel/mkl/lib/intel64/libmkl_gnu_thread.so
+#                    /opt/intel/mkl/lib/intel64/libmkl_core.so
+#                    /usr/lib/x86_64-linux-gnu/libgomp.so.1
+#                /opt/intel/mkl/lib/intel64/libmkl_scalapack_lp64.so
+#                /opt/intel/mkl/lib/intel64/libmkl_cdft_core.so
+#                /opt/intel/mkl/lib/intel64/libmkl_blacs_intelmpi_lp64.so
+
+
+        #4
+                    /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.so
+                    /opt/intel/mkl/lib/intel64/libmkl_sequential.so
+                    /opt/intel/mkl/lib/intel64/libmkl_core.so
+        /opt/intel/mkl/lib/intel64/libmkl_scalapack_lp64.so
+        /opt/intel/mkl/lib/intel64/libmkl_cdft_core.so
+        /opt/intel/mkl/lib/intel64/libmkl_blacs_intelmpi_lp64.so
+
+        #5
+#                    /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.so
+#                    /opt/intel/mkl/lib/intel64/libmkl_intel_thread.so
+#                    /opt/intel/mkl/lib/intel64/libmkl_core.so
+#                    /opt/intel/lib/intel64_lin/libiomp5.so
+
+        #6
+#        /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.so
+#        /opt/intel/mkl/lib/intel64/libmkl_tbb_thread.so
+#        /opt/intel/mkl/lib/intel64/libmkl_core.so
+#        /opt/intel/mkl/lib/intel64/libmkl_scalapack_lp64.so
+#        /opt/intel/mkl/lib/intel64/libmkl_cdft_core.so
+#        /opt/intel/mkl/lib/intel64/libmkl_blacs_intelmpi_lp64.so
+#        /usr/lib/x86_64-linux-gnu/libtbb.so
+        )
+
+message(STATUS "mkl_libs ${mkl_libs}")
+
 target_link_libraries(${target_name}
         gflags
         glog::glog
         opencv_core
         opencv_cudaarithm
-#        /opt/intel/mkl/lib/intel64/libmkl_rt.so
+        ${mkl_libs}
         cuda_support
         )
 
@@ -74,34 +124,14 @@ target_link_libraries(${target_name}
         )
 
 find_package(benchmark)
-if(false AND benchmark_FOUND)
+if(true AND benchmark_FOUND)
     set(target_name "benchmark_test")
-
-#    find_package(CUDA)
 
     add_executable(${target_name}
             benchmark_test.cc)
 
-#    add_compile_options(fopenmp)
-#    target_compile_options(${target_name} PUBLIC -fopenmp)
-
-#    MESSAGE(STATUS "ViennaCL dir ${VIENNACL_INCLUDE_DIRS}")
-#    MESSAGE(STATUS "CUDA dir ${CUDA_INCLUDE_DIRS}")
-
-#    add_compile_definitions(VIENNACL_WITH_CUDA ON)
-
-#    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fopenmp")
     add_compile_definitions(VIENNACL_WITH_OPENMP ON)
-#    add_compile_definitions(EIGEN_USE_MKL_ALL ON)
-#    add_compile_definitions(EIGEN_USE_MKL ON)
 
-#    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-#        find_package(BLAS)
-#        include_directories(${BLAS_INCLUDE_DIRS})
-#        set(PROJECT_LIBS ${BLAS_LIBRARIES})
-#        add_definitions(-DEIGEN_USE_MKL_ALL)
-#        message(STATUS "use mkl")
-#    endif()
     message(STATUS "complier ${CMAKE_CXX_COMPILER_ID}")
     target_include_directories(${target_name} PUBLIC
             ${VIENNACL_INCLUDE_DIRS}
@@ -109,17 +139,9 @@ if(false AND benchmark_FOUND)
             "/opt/intel/mkl/include"
             )
 
-    file(GLOB mkl_libs
-            /opt/intel/mkl/lib/intel64/libmkl_rt.so
-            )
-
-#
     target_link_libraries(${target_name}
             benchmark::benchmark
-            opencv_cudaarithm
-            ${mkl_libs}
-            glog::glog
-            cuda_support
+            basic
             )
 else()
     message(STATUS "benchmark not found")
@@ -134,6 +156,7 @@ target_link_libraries(${target_name}
         glog::glog
         /opt/intel/mkl/lib/intel64/libmkl_rt.so
         cuda_support
+        basic
 #        libmkl_sequential.so
         )
 

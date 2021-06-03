@@ -1,6 +1,7 @@
 //
 // Created by moriarty on 2021/5/29.
 //
+#include "matrix_utils.h"
 
 #include <glog/logging.h>
 #include <opencv2/cudaarithm.hpp>
@@ -140,7 +141,7 @@ void test_gemm() {
   LOG(ERROR) << __func__  << ":dirrerent = " << cv::norm(cp3 - cp1);
 }
 
-void Sigmoid(cv::cuda::GpuMat &matrix);
+void Sigmoid(cv::cuda::GpuMat &matrix){};
 
 void test_elementwise() {
   cv::cuda::GpuMat gpuMat;
@@ -164,6 +165,20 @@ void test_elementwise() {
 }
 
 
+void test_sqrt() {
+  AiLearning::Matrix mat1(100, 100), mat2(100, 100), mat3(100, 100), mat4(100, 100);
+
+  mat1.setRandom();
+  mat1.array() += 4;
+  AiLearning::MatrixUtils::sqrt(mat1, mat2);
+  AiLearning::MatrixUtils::new_sqrt(mat1, mat3);
+  AiLearning::MatrixUtils::raw_sqrt(mat1, mat4);
+
+  LOG(ERROR) << "different = " << (mat2 - mat3).norm() << "," << (mat2 - mat4).norm();
+
+}
+
+
 using EigenMatrix = Eigen::Matrix<
   double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 int main(int argc, char **argv) {
@@ -177,6 +192,7 @@ int main(int argc, char **argv) {
 //  test_subtract();
 //  test_gemm();
 
+  test_sqrt();
 //  EigenMatrix m = EigenMatrix::Random(2, 3), n = m;
 ////  n.setRandom();
 //  m = m.array() + 1;
