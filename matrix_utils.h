@@ -79,8 +79,13 @@ void exp(InputMatrix src, OutputMatrix dst);
 double sum(InputMatrix src);
 double norml2(InputMatrix src1);
 
-
-void Sigmoid(InputOutputMatrix &matrix);
+void derivativeRELU(InputOutputMatrix matrix);
+void RELU(InputOutputMatrix mat);
+void ELU(InputOutputMatrix mat);
+void derivativeELU(InputOutputMatrix matrix);
+void Tanh(InputOutputMatrix mat);
+void Sigmoid(InputOutputMatrix matrix);
+void Softmax(InputOutputMatrix matrix);
 
 
 }//namespace MatrixUtils

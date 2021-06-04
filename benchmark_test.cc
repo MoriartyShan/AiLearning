@@ -18,7 +18,7 @@
 #if 1
 const int rows = 784, cols = 100, rows2 = cols, cols2 = 1;
 #else
-const int rows = 784, cols = 1000, rows2 = cols, cols2 = 1;
+const int rows = 7840, cols = 1000, rows2 = cols, cols2 = 1;
 #endif
 const double alpha = 11.3, beta = 1.5, mgamma = 100.0;
 #ifndef CV_TYPE
@@ -273,19 +273,10 @@ void sigmoid_for(benchmark::State& state) {
 }
 
 void sigmoid_eigen(benchmark::State& state) {
-  Eigen::MatrixXd matrix = Eigen::MatrixXd::Random(rows, cols);
-  Eigen::MatrixXd pp = matrix;
+  AiLearning::Matrix matrix = Eigen::MatrixXd::Random(rows, cols);
+  AiLearning::Matrix pp = matrix;
   for (auto _ : state) {
-    pp = matrix.unaryExpr([](double p) {
-      double res;
-      if (p > 0) {
-        res = 1 / (std::exp(-p) + 1.0);
-      } else {
-        double exp = std::exp(p);
-        res = exp / (1 + exp);
-      }
-      return res;
-    });
+    AiLearning::MatrixUtils::Sigmoid(matrix);
   }
 }
 
@@ -367,7 +358,7 @@ void addWeighted(benchmark::State& state) {
     mat2.setRandom();\
     mat3.setRandom();\
     for (auto _ : state) {\
-      MatrixUtils::name(mat1, mat2, mat2);\
+      MatrixUtils::name(mat1, mat2, mat3);\
     }\
   }\
   void name(benchmark::State& state)
@@ -395,36 +386,6 @@ TestFunctionABC(subtract);
 TestFunctionABC(divide);
 TestFunctionABC(add);
 TestFunctionIO(exp);
-
-
-//BENCHMARK(cpumul);
-//BENCHMARK(cpugpumul);
-//BENCHMARK(gpumul);
-//BENCHMARK(gpumulnostream);
-//BENCHMARK(cpugpumulnostream);
-//
-//BENCHMARK(test_eigen_parallel);
-//BENCHMARK(cpumulmatrix);
-//BENCHMARK(gpugemm2);
-//BENCHMARK(gpugemm);
-//BENCHMARK(test_viennacl_linalg);
-
-//BENCHMARK(sigmoid_for);
-//BENCHMARK(sigmoid_cv);
-//BENCHMARK(sigmoid_eigen);
-//BENCHMARK(thrust_sigmoid_cuda);
-
-//BENCHMARK(add_ele_Xf);
-//BENCHMARK(add_ele_col);
-BENCHMARK(add);
-BENCHMARK(gemm);
-BENCHMARK(addWeighted);
-BENCHMARK(multiply);
-BENCHMARK(subtract);
-BENCHMARK(divide);
-BENCHMARK(sqrt);
-BENCHMARK(exp);
-
 
 
 namespace AiLearning{
@@ -478,11 +439,46 @@ void raw_sqrt(InputMatrix src, OutputMatrix dst) {
 
 TestFunctionIO(raw_sqrt);
 TestFunctionIO(new_sqrt);
+void multiply2(benchmark::State& state) {
+    Eigen::Matrix<\
+      scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>\
+      mat1(rows, cols), mat2(rows, cols), mat3(rows, cols);\
+    for (auto _ : state) {\
+      MatrixUtils::multiply(mat1, mat2, mat3);\
+      mat2 = mat3;\
+    }\
+  }\
 
-BENCHMARK(sqrt);
-BENCHMARK(raw_sqrt);
-BENCHMARK(new_sqrt);
+//BENCHMARK(cpumul);
+//BENCHMARK(cpugpumul);
+//BENCHMARK(gpumul);
+//BENCHMARK(gpumulnostream);
+//BENCHMARK(cpugpumulnostream);
+//
+//BENCHMARK(test_eigen_parallel);
+//BENCHMARK(cpumulmatrix);
+//BENCHMARK(gpugemm2);
+//BENCHMARK(gpugemm);
+//BENCHMARK(test_viennacl_linalg);
 
+BENCHMARK(sigmoid_for);
+//BENCHMARK(sigmoid_cv);
+BENCHMARK(sigmoid_eigen);
+//BENCHMARK(thrust_sigmoid_cuda);
+
+//BENCHMARK(add_ele_Xf);
+//BENCHMARK(add_ele_col);
+//BENCHMARK(add);
+//BENCHMARK(gemm);
+//BENCHMARK(addWeighted);
+//BENCHMARK(multiply);
+//BENCHMARK(multiply2);
+//BENCHMARK(subtract);
+//BENCHMARK(divide);
+//BENCHMARK(exp);
+//BENCHMARK(sqrt);
+//BENCHMARK(raw_sqrt);
+//BENCHMARK(new_sqrt);
 
 //BENCHMARK_MAIN();
 int main(int argc, char** argv) {

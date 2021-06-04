@@ -37,6 +37,11 @@ bool NeuronConstructor::read(cv::FileStorage &fs, const int id) {
 
   std::sort(_prev_neurons_idx.begin(), _prev_neurons_idx.end());
   std::sort(_next_neurons_idx.begin(), _next_neurons_idx.end());
+
+  for (auto &who : _Whos) {
+    ConvertType(who);
+  }
+
 //  LOG(ERROR) << "read Who " << _Whos.size() << "," << _Whos[0].size();
 
   return true;

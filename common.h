@@ -21,9 +21,6 @@ inline std::ostream& operator <<(std::ostream& os, const cv::cuda::GpuMat& m) {
 #elif defined(OPENCV_CPU_MODE)
 
 #elif defined(EIGEN_MODE)
-#ifndef EIGEN_USE_MKL_ALL
-#define EIGEN_USE_MKL_ALL true
-#endif
 #include <Eigen/Core>
 #include <opencv2/core/eigen.hpp>
 #else
@@ -61,19 +58,12 @@ using OutputMatrix = Matrix&;
 using InputOutputMatrix = Matrix&;
 
 void Sigmoid(cv::Mat &matrix);
-
-void ELU(Matrix &matrix);
-void derivativesELU(Matrix &matrix);
-
-void Softmax(Matrix &matrix);
-void derivativesSoftmax(Matrix &matrix);
-
-void RELU(Matrix &matrix);
-void derivativesRELU(Matrix &matrix);
-
-void Tanh(Matrix &matrix);
-void derivateTanh(Matrix &matrix);
 void Random(cv::Mat &matrix);
+
+/*
+ * convert mat type to CV_TYPE if it is not
+ * */
+void ConvertType(cv::Mat& mat);
 
 
 }//namespace AiLearning

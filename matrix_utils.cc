@@ -7,6 +7,8 @@
 
 namespace AiLearning {
 namespace MatrixUtils {
+#define ELU_COEF 1.0
+
 #ifdef OPENCV_CUDA_MODE
 Matrix createMatrix(int rows, int cols, int type) {
   return Matrix(rows, cols, type);
@@ -401,18 +403,18 @@ void gemm(InputMatrix src1, InputMatrix src2, double alpha,
  * _Type1 and _Type2 is matrix or scalar
  * */
 void add(InputMatrix src1, scalar src2, OutputMatrix dst) {
-  MicrosecondTimer timer(__func__ );
-  timer.begin();
+//  MicrosecondTimer timer(__func__ );
+//  timer.begin();
   dst = src1.array() + src2;
-  timer.end();
+//  timer.end();
   return;
 }
 
 void add(InputMatrix src1, InputMatrix src2, OutputMatrix dst) {
-  MicrosecondTimer timer(__func__ );
-  timer.begin();
+//  MicrosecondTimer timer(__func__ );
+//  timer.begin();
   dst = src1 + src2;
-  timer.end();
+//  timer.end();
   return;
 }
 
@@ -502,8 +504,62 @@ double norml2(InputMatrix src1) {
   return src1.norm();
 }
 
-void Sigmoid(InputOutputMatrix &matrix) {
+void derivativeRELU(InputOutputMatrix matrix) {
   matrix = matrix.unaryExpr([](scalar p) {
+    if (p > 0) {
+      return scalar(1);
+    }
+    return scalar(0);
+  });
+}
+
+void RELU(InputOutputMatrix matrix) {
+  matrix = matrix.unaryExpr([](scalar p) {
+    if (p >= 0) {
+      return p;
+    }
+    return scalar(0);
+  });
+}
+
+void derivativeELU(InputOutputMatrix matrix) {
+  matrix = matrix.unaryExpr([](scalar p) {
+    scalar res = p;
+    if (res > 0) {
+      res = 1;
+    } else {
+      res = res + ELU_COEF;
+    }
+    return res;
+  });
+}
+
+void ELU(InputOutputMatrix matrix) {
+  matrix = matrix.unaryExpr([](scalar p) {
+    scalar res = p;
+    if (res <= 0) {
+      res = ELU_COEF * (std::exp(res) - 1);
+    }
+    return res;
+  });
+}
+
+void Tanh(InputOutputMatrix matrix) {
+  matrix = matrix.unaryExpr([](scalar p) {
+    scalar res;
+    if (p > 0) {
+      scalar exp = std::exp(-2 * p);
+      res = (1 - exp) / (1 + exp);
+    } else {
+      scalar exp = std::exp(2 * p);
+      res = (exp - 1) / (1 + exp);
+    }
+    return res;
+  });
+}
+
+void Sigmoid(InputOutputMatrix matrix) {
+  matrix = matrix.array().unaryExpr([](scalar p) {
     scalar res;
     if (p > 0) {
       res = 1 / (std::exp(-p) + 1.0);
@@ -513,6 +569,14 @@ void Sigmoid(InputOutputMatrix &matrix) {
     }
     return res;
   });
+}
+
+void Softmax(InputOutputMatrix matrix) {
+  scalar max = matrix.maxCoeff();
+  matrix.array() -= max;
+  matrix = matrix.array().exp();
+  scalar sum = matrix.sum();
+  matrix /= sum;
 }
 
 #else
