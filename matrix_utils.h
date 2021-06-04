@@ -84,6 +84,7 @@ void RELU(InputOutputMatrix mat);
 void ELU(InputOutputMatrix mat);
 void derivativeELU(InputOutputMatrix matrix);
 void Tanh(InputOutputMatrix mat);
+void derivativeTanh(InputOutputMatrix &matrix);
 void Sigmoid(InputOutputMatrix matrix);
 void Softmax(InputOutputMatrix matrix);
 

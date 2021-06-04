@@ -31,7 +31,7 @@ inline std::ostream& operator <<(std::ostream& os, const cv::cuda::GpuMat& m) {
 
 namespace AiLearning {
 
-#if 0
+#if 1
 using scalar = float;
 #define CV_TYPE CV_32FC1
 #else

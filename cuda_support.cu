@@ -10,6 +10,8 @@
 #include <opencv2/cudaarithm.hpp>
 #include <glog/logging.h>
 
+#define ELU_COEF 1.0
+
 namespace AiLearning {
 namespace MatrixUtils {
 template<typename T>
@@ -81,8 +83,7 @@ GpuMatEndItr(cv::cuda::GpuMat mat, int channel = 0) {
 }
 
 template<typename _T>
-struct sigmoid_func : public thrust::unary_function<void, _T &> {
-
+struct Sigmoid_func : public thrust::unary_function<void, _T &> {
   __host__ __device__
   void operator()(_T &p) const {
     if (p > 0) {
@@ -94,25 +95,91 @@ struct sigmoid_func : public thrust::unary_function<void, _T &> {
   }
 };
 
-void Sigmoid(cv::cuda::GpuMat &matrix) {
-  if (matrix.type() == CV_64FC1) {
-    sigmoid_func<double> func;
-    auto valueBegin = GpuMatBeginItr<double>(matrix, 0);
-    auto valueEnd = GpuMatEndItr<double>(matrix, 0);
-    thrust::for_each(valueBegin, valueEnd, func);
-  } else if (matrix.type() == CV_32FC1) {
-    sigmoid_func<float> func;
-    auto valueBegin = GpuMatBeginItr<float>(matrix, 0);
-    auto valueEnd = GpuMatEndItr<float>(matrix, 0);
-    thrust::for_each(valueBegin, valueEnd, func);
-  } else {
-    LOG(FATAL) << "invalid input type:" << matrix.type()
-               << ", must be CV_64FC1 or CV_32FC1";
+template<typename _T>
+struct Tanh_func : public thrust::unary_function<void, _T &> {
+  __host__ __device__
+  void operator()(_T &p) const {
+    if (p > 0) {
+      _T exp = std::exp(-2 * p);
+      p = (1 - exp) / (1 + exp);
+    } else {
+      _T exp = std::exp(2 * p);
+      p = (exp - 1) / (1 + exp);
+    }
   }
+};
 
 
-  return;
-}
+template<typename _T>
+struct derivativeRELU_func : public thrust::unary_function<void, _T &> {
+  __host__ __device__
+  void operator()(_T &p) const {
+    if (p > 0) {
+      p = 1;
+    } else {
+      p = 0;
+    }
+  }
+};
+
+template<typename _T>
+struct RELU_func : public thrust::unary_function<void, _T &> {
+  __host__ __device__
+  void operator()(_T &p) const {
+    if (p < 0) {
+      p = 0;
+    }
+  }
+};
+
+template<typename _T>
+struct derivativeELU_func : public thrust::unary_function<void, _T &> {
+  __host__ __device__
+  void operator()(_T &p) const {
+    if (p > 0) {
+      p = 1;
+    } else {
+      p = p + ELU_COEF;
+    }
+  }
+};
+
+template<typename _T>
+struct ELU_func : public thrust::unary_function<void, _T &> {
+  __host__ __device__
+  void operator()(_T &p) const {
+    if (p <= 0) {
+      p = ELU_COEF * (std::exp(p) - 1);
+    }
+  }
+};
+
+#define DefineFunction(Name) void Name(cv::cuda::GpuMat &matrix) {\
+  if (matrix.type() == CV_64FC1) {\
+    Name##_func<double> func;\
+    auto valueBegin = GpuMatBeginItr<double>(matrix, 0);\
+    auto valueEnd = GpuMatEndItr<double>(matrix, 0);\
+    thrust::for_each(valueBegin, valueEnd, func);\
+  } else if (matrix.type() == CV_32FC1) {\
+    Name##_func<float> func;\
+    auto valueBegin = GpuMatBeginItr<float>(matrix, 0);\
+    auto valueEnd = GpuMatEndItr<float>(matrix, 0);\
+    thrust::for_each(valueBegin, valueEnd, func);\
+  } else {\
+    LOG(FATAL) << "invalid input type:" << matrix.type()\
+               << ", must be CV_64FC1 or CV_32FC1";\
+  }\
+  return;\
+}\
+void Name(cv::cuda::GpuMat &matrix)
+
+DefineFunction(Sigmoid);
+DefineFunction(Tanh);
+DefineFunction(derivativeRELU);
+DefineFunction(RELU);
+DefineFunction(ELU);
+DefineFunction(derivativeELU);
+
 
 }//namespace MatrixUtils
 }//namespace AiLearning

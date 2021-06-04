@@ -265,7 +265,6 @@ int main(int argc, char **argv) {
           int number = create_input(line, input);
           loss += netWork.train(input, std_res[number], learning_rate);
           train_size++;
-
         }
 //        if (train_size % 1000 == 1) {
 //          LOG(ERROR) << "trained data " << train_size;

@@ -166,18 +166,37 @@ void test_elementwise() {
 
 
 void test_sqrt() {
-  AiLearning::Matrix mat1(100, 100), mat2(100, 100), mat3(100, 100), mat4(100, 100);
-
-  mat1.setRandom();
-  mat1.array() += 4;
-  AiLearning::MatrixUtils::sqrt(mat1, mat2);
-  AiLearning::MatrixUtils::new_sqrt(mat1, mat3);
-  AiLearning::MatrixUtils::raw_sqrt(mat1, mat4);
-
-  LOG(ERROR) << "different = " << (mat2 - mat3).norm() << "," << (mat2 - mat4).norm();
+//  AiLearning::Matrix mat1(100, 100), mat2(100, 100), mat3(100, 100), mat4(100, 100);
+//
+//  mat1.setRandom();
+//  mat1.array() += 4;
+//  AiLearning::MatrixUtils::sqrt(mat1, mat2);
+//  AiLearning::MatrixUtils::new_sqrt(mat1, mat3);
+//  AiLearning::MatrixUtils::raw_sqrt(mat1, mat4);
+//
+//  LOG(ERROR) << "different = " << (mat2 - mat3).norm() << "," << (mat2 - mat4).norm();
 
 }
 
+
+void test_max_min() {
+  cv::Mat m(3, 4, CV_64FC1);
+  cv::randu(m, -100, 100);
+
+  cv::cuda::GpuMat gm(m), maxmin;
+  cv::cuda::Stream stream;
+  cv::cuda::findMinMax(gm, maxmin, cv::noArray(), stream);
+//  maxmin
+
+  LOG(ERROR) << "src:\n" << m;
+
+  LOG(ERROR) << "result = \n" << cv::Mat(maxmin);
+
+
+
+
+
+}
 
 using EigenMatrix = Eigen::Matrix<
   double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
@@ -191,8 +210,8 @@ int main(int argc, char **argv) {
 //  test_divide();
 //  test_subtract();
 //  test_gemm();
-
-  test_sqrt();
+  test_max_min();
+//  test_sqrt();
 //  EigenMatrix m = EigenMatrix::Random(2, 3), n = m;
 ////  n.setRandom();
 //  m = m.array() + 1;

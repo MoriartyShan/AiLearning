@@ -162,8 +162,29 @@ double norml2(InputMatrix src1) {
   return cv::cuda::norm(src1, cv::NORM_L2);
 }
 
+void derivativeTanh(InputOutputMatrix &matrix) {
+  cv::cuda::pow(matrix, 2, matrix, cu_stream);
+  MatrixUtils::subtract(1, matrix, matrix);
+}
+
+void Softmax(InputOutputMatrix matrix) {
+  double max;
+  cv::cuda::minMax(matrix, nullptr, &max);
+  MatrixUtils::subtract(matrix, max, matrix);
+  cv::cuda::exp(matrix, matrix, cu_stream);
+  scalar sum = cv::cuda::sum(matrix)(0);
+  MatrixUtils::divide(matrix, sum, matrix);
+}
+
+
 ///implemented in cuda_support
 //void Sigmoid(InputOutputMatrix &matrix) {}
+//void Tanh(InputOutputMatrix mat){};
+//void derivativeRELU(InputOutputMatrix matrix);
+//void RELU(InputOutputMatrix mat);
+//void ELU(InputOutputMatrix mat);
+//void derivativeELU(InputOutputMatrix matrix);
+
 
 #elif defined(OPENCV_CPU_MODE)
 Matrix createMatrix(int rows, int cols, int type) {
@@ -326,6 +347,69 @@ double norml2(InputMatrix src1) {
 
 void Sigmoid(InputOutputMatrix &matrix) {
   AiLearning::Sigmoid(matrix);
+}
+
+
+
+void derivativeRELU(InputOutputMatrix matrix) {
+  matrix.forEach<scalar>([](scalar &p, const int * position) {
+    if (p > 0) {
+      p = 1;
+    } else {
+      p = 0;
+    }
+  });
+}
+
+void RELU(InputOutputMatrix matrix) {
+  matrix.forEach<scalar>([](scalar &p, const int * position) {
+    if (p < 0) {
+      p = 0;
+    }
+  });
+}
+
+void derivativeELU(InputOutputMatrix matrix) {
+  matrix.forEach<scalar>([](scalar &p, const int * position) {
+    if (p > 0) {
+      p = 1;
+    } else {
+      p = p + ELU_COEF;
+    }
+  });
+}
+
+void ELU(InputOutputMatrix matrix) {
+  matrix.forEach<scalar>([](scalar &p, const int * position) {
+    if (p <= 0) {
+      p = ELU_COEF * (std::exp(p) - 1);
+    }
+  });
+}
+
+void Tanh(InputOutputMatrix matrix) {
+  matrix.forEach<scalar>([](scalar &p, const int * position) {
+    if (p > 0) {
+      scalar exp = std::exp(-2 * p);
+      p = (1 - exp) / (1 + exp);
+    } else {
+      scalar exp = std::exp(2 * p);
+      p = (exp - 1) / (1 + exp);
+    }
+  });
+}
+
+void derivativeTanh(InputOutputMatrix &matrix) {
+  matrix = 1 - matrix.mul(matrix);
+}
+
+void Softmax(InputOutputMatrix matrix) {
+  double max;
+  cv::minMaxIdx(matrix, nullptr, &max);
+  matrix -= max;
+  cv::exp(matrix, matrix);
+  scalar sum = cv::sum(matrix)(0);
+  matrix /= sum;
 }
 
 #elif defined(EIGEN_MODE)
@@ -537,7 +621,7 @@ void derivativeELU(InputOutputMatrix matrix) {
 void ELU(InputOutputMatrix matrix) {
   matrix = matrix.unaryExpr([](scalar p) {
     scalar res = p;
-    if (res <= 0) {
+    if (res < 0) {
       res = ELU_COEF * (std::exp(res) - 1);
     }
     return res;
@@ -556,6 +640,10 @@ void Tanh(InputOutputMatrix matrix) {
     }
     return res;
   });
+}
+
+void derivativeTanh(InputOutputMatrix &matrix) {
+  matrix = 1 - matrix.array() * matrix.array();
 }
 
 void Sigmoid(InputOutputMatrix matrix) {
