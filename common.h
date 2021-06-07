@@ -8,7 +8,7 @@
 
 //#define OPENCV_CUDA_MODE
 //#define OPENCV_CPU_MODE
-#define EIGEN_MODE
+//#define EIGEN_MODE
 
 #ifdef OPENCV_CUDA_MODE
 #include <opencv2/cudaarithm.hpp>

@@ -3,43 +3,67 @@ project(NeuralNetwork)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+
 find_package(glog REQUIRED)
-find_package(Eigen3 REQUIRED)
 find_package(ViennaCL REQUIRED)
 find_package(gflags REQUIRED)
-find_package(OpenCV REQUIRED core cudaarithm)
+find_package(OpenCV REQUIRED core)
 
+set(LINK_LIBS "")
 
-enable_language(CUDA)
+OPTION(EIGEN_MODE "matrix operation use eigen" OFF)
+OPTION(OPENCV_CUDA_MODE "matrix operation use cuda" OFF)
+OPTION(OPENCV_CPU_MODE "matrix operation use opencv" OFF)
 
-set(target_name "cuda_support")
+if(EIGEN_MODE)
+    message(STATUS "matrix mode EIGEN_MODE")
 
-#target_include_directories(${target_name} PUBLIC
-#        "/usr/local/cuda/include"
-#        )
+    find_package(Eigen3 REQUIRED)
+    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fopenmp")
+    add_compile_definitions(EIGEN_USE_MKL_ALL ON)
+    add_compile_definitions(EIGEN_MODE ON)
+    add_compile_options(-m64)
+    #mkl support
+    include_directories(${target_name} PUBLIC
+            "/opt/intel/mkl/include"
+            )
 
-add_library(${target_name}
-        cuda_support.cu
-        )
+    set(LINK_LIBS
+            /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.so
+            /opt/intel/mkl/lib/intel64/libmkl_sequential.so
+            /opt/intel/mkl/lib/intel64/libmkl_core.so
+            /opt/intel/mkl/lib/intel64/libmkl_scalapack_lp64.so
+            /opt/intel/mkl/lib/intel64/libmkl_cdft_core.so
+            /opt/intel/mkl/lib/intel64/libmkl_blacs_intelmpi_lp64.so
+            )
+elseif(OPENCV_CUDA_MODE)
+    message(STATUS "matrix mode OPENCV_CUDA_MODE")
+    enable_language(CUDA)
+    set(target_name "cuda_support")
 
-target_link_libraries(${target_name}
-        gflags
-        glog::glog
-        opencv_core
-        opencv_cudaarithm
-        )
+    find_package(OpenCV REQUIRED cudaarithm)
+    add_compile_definitions(OPENCV_CUDA_MODE ON)
+    add_library(${target_name}
+            cuda_support.cu
+            )
 
+    target_link_libraries(${target_name}
+            gflags
+            glog::glog
+            opencv_core
+            opencv_cudaarithm
+            )
+    set(LINK_LIBS  cuda_support)
+elseif(OPENCV_CPU_MODE)
+    message(STATUS "matrix mode OPENCV_CPU_MODE")
+    add_compile_definitions(OPENCV_CPU_MODE ON)
+else()
+    message(FATAL_ERROR "should appoint a option:EIGEN_MODE/OPENCV_CUDA_MODE/OPENCV_CPU_MODE")
+endif()
 
-
-SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fopenmp")
-add_compile_definitions(EIGEN_USE_MKL_ALL ON)
 
 set(target_name "basic")
-message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
 
-#add_compile_definitions(EIGEN_USE_MKL ON)
-#add_compile_definitions(MKL_DIRECT_CALL ON)
-add_compile_options(-m64)
 add_library(${target_name}
         activer.cc
         basic.cc
@@ -50,60 +74,12 @@ add_library(${target_name}
         optimizer.cc
         )
 
-include_directories(${target_name} PUBLIC
-        "/opt/intel/mkl/include"
-        )
-
-
-set(mkl_libs
-        #1
-
-        #2
-#                    /opt/intel/mkl/lib/intel64/libmkl_rt.so
-
-        #3
-#                    /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.so
-#                    /opt/intel/mkl/lib/intel64/libmkl_gnu_thread.so
-#                    /opt/intel/mkl/lib/intel64/libmkl_core.so
-#                    /usr/lib/x86_64-linux-gnu/libgomp.so.1
-#                /opt/intel/mkl/lib/intel64/libmkl_scalapack_lp64.so
-#                /opt/intel/mkl/lib/intel64/libmkl_cdft_core.so
-#                /opt/intel/mkl/lib/intel64/libmkl_blacs_intelmpi_lp64.so
-
-
-        #4
-                    /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.so
-                    /opt/intel/mkl/lib/intel64/libmkl_sequential.so
-                    /opt/intel/mkl/lib/intel64/libmkl_core.so
-        /opt/intel/mkl/lib/intel64/libmkl_scalapack_lp64.so
-        /opt/intel/mkl/lib/intel64/libmkl_cdft_core.so
-        /opt/intel/mkl/lib/intel64/libmkl_blacs_intelmpi_lp64.so
-
-        #5
-#                    /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.so
-#                    /opt/intel/mkl/lib/intel64/libmkl_intel_thread.so
-#                    /opt/intel/mkl/lib/intel64/libmkl_core.so
-#                    /opt/intel/lib/intel64_lin/libiomp5.so
-
-        #6
-#        /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.so
-#        /opt/intel/mkl/lib/intel64/libmkl_tbb_thread.so
-#        /opt/intel/mkl/lib/intel64/libmkl_core.so
-#        /opt/intel/mkl/lib/intel64/libmkl_scalapack_lp64.so
-#        /opt/intel/mkl/lib/intel64/libmkl_cdft_core.so
-#        /opt/intel/mkl/lib/intel64/libmkl_blacs_intelmpi_lp64.so
-#        /usr/lib/x86_64-linux-gnu/libtbb.so
-        )
-
-message(STATUS "mkl_libs ${mkl_libs}")
-
+message(STATUS "Linking libs ${LINK_LIBS}")
 target_link_libraries(${target_name}
         gflags
         glog::glog
         opencv_core
-        opencv_cudaarithm
-        ${mkl_libs}
-        cuda_support
+        ${LINK_LIBS}
         )
 
 set(target_name "number")
@@ -124,7 +100,7 @@ target_link_libraries(${target_name}
         )
 
 find_package(benchmark)
-if(true AND benchmark_FOUND)
+if(false AND benchmark_FOUND)
     set(target_name "benchmark_test")
 
     add_executable(${target_name}
