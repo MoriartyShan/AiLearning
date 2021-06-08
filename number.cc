@@ -248,6 +248,13 @@ int main(int argc, char **argv) {
     scalar learning_rate = FLAGS_learning_rate;
     int best_epoch = 0;
     scalar best_loss = -1;
+    const int batch_size = 32;
+    AiLearning::Matrix input;
+    std::vector<AiLearning::Matrix> inputs(batch_size), targets(batch_size);
+    AiLearning::Matrix batch_input =
+        AiLearning::MatrixUtils::createMatrix(784, batch_size, CV_TYPE);
+    AiLearning::Matrix batch_target =
+        AiLearning::MatrixUtils::createMatrix(10, batch_size, CV_TYPE);
 
     std::vector<AiLearning::Matrix> std_res;
     create_std(std_res);
@@ -257,19 +264,34 @@ int main(int argc, char **argv) {
       std::ifstream file(root + data);
       CHECK(file.is_open()) << root + data << " open fail";
       std::string line;
-      AiLearning::Matrix input;
+
       timer.begin();
       while (!file.eof()) {
         std::getline(file, line);
         if (!line.empty()) {
-          int number = create_input(line, input);
-          loss += netWork.train(input, std_res[number], learning_rate);
+          const int number = create_input(line, input);
+          const int batch_id = train_size % batch_size;
+          inputs[batch_id] = input;
+          targets[batch_id] = std_res[number];
+
+          if (batch_id == (batch_size - 1)) {
+            AiLearning::MatrixUtils::combineMatrix(inputs, batch_input);
+            AiLearning::MatrixUtils::combineMatrix(targets, batch_target);
+            loss += netWork.train(batch_input, batch_target, learning_rate);
+          }
+
           train_size++;
         }
-//        if (train_size % 1000 == 1) {
-//          LOG(ERROR) << "trained data " << train_size;
-//        }
       }
+      const int batch_id = train_size % batch_size;
+      if (batch_id > 0) {
+        inputs.resize(batch_id);
+        targets.resize(batch_id);
+        AiLearning::MatrixUtils::combineMatrix(inputs, batch_input);
+        AiLearning::MatrixUtils::combineMatrix(targets, batch_target);
+        loss += netWork.train(batch_input, batch_target, learning_rate);
+      }
+
       int64_t cost = timer.end();
       file.close();
 

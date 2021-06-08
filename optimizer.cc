@@ -73,6 +73,8 @@ public:
   const Matrix& UpdateParameter(const Matrix &error, const Matrix &Ok, const Matrix &Ik) override {
     MicrosecondTimer timer(__func__ );
     timer.begin();
+    cv::Size matrix_size = MatrixUtils::MatrixSize(error);
+    const double batch_coeff = 1.0 / matrix_size.width;
     if (MatrixUtils::isEmpty(Ok)) {
       MatrixUtils::gemm(
           error, Ik, 1, Matrix(), 0, _gt, MatrixUtils::GEMM_2_T);
@@ -83,6 +85,7 @@ public:
           _tmp, Ik, 1, Matrix(), 0, _gt, MatrixUtils::GEMM_2_T);
     }
     timer.end();
+    MatrixUtils::multiply(batch_coeff, _gt, _gt);
     return UpdateParameter(_gt);
   }
 

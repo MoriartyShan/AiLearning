@@ -10,6 +10,23 @@ namespace MatrixUtils {
 #define ELU_COEF 1.0
 
 #ifdef OPENCV_CUDA_MODE
+void combineMatrix(const std::vector<Matrix>& src, OutputMatrix dst) {
+  const int cols = src.size();
+  resizeMatrix(dst, src.front().rows, cols);
+  for (int i = 0; i < cols; i++) {
+    ACHECK(src[i].cols == 1) << src[i].size() << ", size should b nx1";
+    src[i].copyTo(dst.col(i));
+
+  }
+  return;
+}
+
+void resizeMatrix(OutputMatrix matrix, int rows, int cols) {
+  if (matrix.rows != rows || matrix.cols != cols) {
+    matrix.create(rows, cols, CV_TYPE);
+  }
+}
+
 Matrix createMatrix(int rows, int cols, int type) {
   return Matrix(rows, cols, type);
 }
@@ -187,6 +204,22 @@ void Softmax(InputOutputMatrix matrix) {
 
 
 #elif defined(OPENCV_CPU_MODE)
+void combineMatrix(const std::vector<Matrix>& src, OutputMatrix dst) {
+  const int cols = src.size();
+  resizeMatrix(dst, src.front().rows, cols);
+  for (int i = 0; i < cols; i++) {
+    ACHECK(src[i].cols == 1) << src[i].size() << ", size should b nx1";
+    src[i].copyTo(dst.col(i));
+  }
+  return;
+}
+
+void resizeMatrix(OutputMatrix matrix, int rows, int cols) {
+  if (matrix.rows != rows || matrix.cols != cols) {
+    matrix.create(rows, cols, CV_TYPE);
+  }
+}
+
 Matrix createMatrix(int rows, int cols, int type) {
   return Matrix(rows, cols, type);
 }
@@ -414,6 +447,22 @@ void Softmax(InputOutputMatrix matrix) {
 
 #elif defined(EIGEN_MODE)
 ///basic fuctions
+
+void combineMatrix(const std::vector<Matrix>& src, OutputMatrix dst) {
+  const int cols = src.size();
+  resizeMatrix(dst, src.front().rows(), cols);
+  for (int i = 0; i < cols; i++) {
+      ACHECK(src[i].cols() == 1) << src[i].size() << ", size should b nx1";
+    dst.col(i) = src[i];
+  }
+  return;
+}
+
+void resizeMatrix(OutputMatrix matrix, int rows, int cols) {
+  if (matrix.rows() != rows || matrix.cols() != cols) {
+    matrix.resize(rows, cols);
+  }
+}
 
 Matrix createMatrix(int rows, int cols, int type) {
   return Matrix::Zero(rows, cols);

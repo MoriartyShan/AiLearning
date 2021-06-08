@@ -108,6 +108,13 @@ void Neuron::query(const Matrix &in){
   MicrosecondTimer timer(__func__);
   timer.begin();
   _in = &in;
+
+  {
+    int batch_size = MatrixUtils::MatrixSize(in).width;
+    MatrixUtils::resizeMatrix(_processing, MatrixUtils::MatrixSize(_processing).height, batch_size);
+    MatrixUtils::resizeMatrix(_error, output_data_size(), batch_size);
+  }
+
   MatrixUtils::gemm(
     Who(0), in, 1, Matrix(), 0, _processing, 0);
 
@@ -127,7 +134,11 @@ void Neuron::query() {
   const size_t prev_num = num_prev();
   _in = nullptr;
   timer1.begin("setto 0");
-
+  {
+    int batch_size = MatrixUtils::MatrixSize(_netWork_ptr->neuron(_prev_neurons_idx[0])->processing()).width;
+    MatrixUtils::resizeMatrix(_processing, MatrixUtils::MatrixSize(_processing).height, batch_size);
+    MatrixUtils::resizeMatrix(_error, output_data_size(), batch_size);
+  }
   MatrixUtils::setZeros(_processing);
 
   timer1.end();
@@ -225,9 +236,6 @@ void Neuron::back_propogate(
 void Neuron::back_propogate(const float learning_rate) {
   MicrosecondTimer timer(__func__);
   timer.begin();
-  if (MatrixUtils::isEmpty(_error)) {
-    _error = MatrixUtils::createMatrix(output_data_size(), 1, CV_TYPE);
-  }
   MatrixUtils::setZeros(_error);
   for (auto next : _next_neurons_idx) {
     MatrixUtils::add(

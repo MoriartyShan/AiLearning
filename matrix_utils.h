@@ -17,6 +17,8 @@ enum GemmFlags {
   GEMM_3_T = 4 //!< transposes src3
 };
 
+void combineMatrix(const std::vector<Matrix>& src, OutputMatrix dst);
+void resizeMatrix(OutputMatrix matrix, int rows, int cols);
 Matrix createMatrix(int rows, int cols, int type);
 bool isEmpty(InputMatrix mat);
 void Random(Matrix &matrix);
