@@ -271,8 +271,8 @@ int main(int argc, char **argv) {
         if (!line.empty()) {
           const int number = create_input(line, input);
           const int batch_id = train_size % batch_size;
-          inputs[batch_id] = input;
-          targets[batch_id] = std_res[number];
+          AiLearning::MatrixUtils::CopyTo(input, inputs[batch_id]);
+          AiLearning::MatrixUtils::CopyTo(std_res[number], targets[batch_id]);
 
           if (batch_id == (batch_size - 1)) {
             AiLearning::MatrixUtils::combineMatrix(inputs, batch_input);
