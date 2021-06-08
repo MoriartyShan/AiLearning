@@ -67,21 +67,32 @@ private:
     return _output;
   }
 
-public:
-  AdamOptimizer(){}
-
-  const Matrix& UpdateParameter(const Matrix &error, const Matrix &Ok, const Matrix &Ik) override {
-    MicrosecondTimer timer(__func__ );
-    timer.begin();
+  void updateGT(const Matrix &error, const Matrix &Ok, const Matrix &Ik) {
     if (MatrixUtils::isEmpty(Ok)) {
       MatrixUtils::gemm(
-          error, Ik, 1, Matrix(), 0, _gt, MatrixUtils::GEMM_2_T);
+        error, Ik, 1, _gt, 1, _gt, MatrixUtils::GEMM_2_T);
 
     } else {
       MatrixUtils::multiply(error, Ok, _tmp);
       MatrixUtils::gemm(
-          _tmp, Ik, 1, Matrix(), 0, _gt, MatrixUtils::GEMM_2_T);
+        _tmp, Ik, 1, _gt, 1, _gt, MatrixUtils::GEMM_2_T);
     }
+  };
+
+public:
+  AdamOptimizer(){}
+
+  const Matrix& UpdateParameter(const std::vector<Matrix>& errors, const std::vector<Matrix>& Oks, const std::vector<Matrix>& Iks) override {
+    MicrosecondTimer timer(__func__ );
+    timer.begin();
+
+    MatrixUtils::setZeros(_gt);
+
+    const size_t size = errors.size();
+    for (size_t i = 0; i < size; i++) {
+      updateGT(errors[i], Oks[i], Iks[i]);
+    }
+
     timer.end();
     return UpdateParameter(_gt);
   }

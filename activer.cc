@@ -15,17 +15,21 @@ private:\
   Matrix _tmp;\
 public:\
   Name##Activer(const std::string &name) : Activer(name) {}\
-  void active(Matrix &mat) override {\
+  void active(std::vector<Matrix> &mats) override {\
     MicrosecondTimer timer(__func__);\
-    timer.begin();\
-    AiLearning::MatrixUtils::Name(mat);\
+    timer.begin();                                                       \
+    for (auto &mat : mats) {\
+      AiLearning::MatrixUtils::Name(mat);\
+    }\
     timer.end();\
   }\
-  void derivatives(Matrix &mat) override {\
+  void derivatives(std::vector<Matrix> &mats) override {\
     MicrosecondTimer timer(__func__);\
     timer.begin();\
-    MatrixUtils::subtract(1, mat, _tmp);\
-    MatrixUtils::multiply(mat, _tmp, mat);\
+    for (auto &mat : mats) {\
+      MatrixUtils::subtract(1, mat, _tmp);\
+      MatrixUtils::multiply(mat, _tmp, mat);\
+    }\
     timer.end();\
   }\
 }
@@ -37,16 +41,20 @@ SigTypeActiverDefine(Softmax);
 #define ActiverDefine(Name) class Name##Activer : public Activer {\
 public:\
   Name##Activer(const std::string &name) : Activer(name) {}\
-  void active(Matrix &mat) override {\
+  void active(std::vector<Matrix> &mats) override {\
     MicrosecondTimer timer(__func__);\
     timer.begin();\
-    AiLearning::MatrixUtils::Name(mat);\
+    for (auto &mat : mats) {\
+      AiLearning::MatrixUtils::Name(mat);\
+    }\
     timer.end();\
   }\
-  void derivatives(Matrix &mat) override {\
+  void derivatives(std::vector<Matrix> &mats) override {\
     MicrosecondTimer timer(__func__);\
     timer.begin();\
-    AiLearning::MatrixUtils::derivative##Name(mat);\
+    for (auto &mat:mats){\
+      AiLearning::MatrixUtils::derivative##Name(mat);\
+    }\
     timer.end();\
   }\
 }

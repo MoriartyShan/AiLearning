@@ -63,7 +63,7 @@ Neuron::Neuron(const NeuronConstructor& constructor) :
 
   if (!_prev_neurons_idx.empty()) {
     for (auto prev : _prev_neurons_idx) {
-      _prev_neurons_error.emplace(prev, Matrix());
+      _prev_neurons_error.emplace(prev, std::vector<Matrix>());
       _netWork_ptr->neuron(prev)->regist_next_neuron(id());
     }
   }
@@ -141,14 +141,29 @@ void Neuron::query() {
     timer1.end();
   }
   ACHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process \n" << processing() << ",\n" << _tmp;
-  _activer->active(_processing);
+  _activer->active(_processings);
   ACHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process \n" << processing();
   timer.end();
   return;
 }
 
+void Neuron::back_propogate_error(
+  const std::vector<Matrix> &errors, std::vector<Matrix> &to, const Matrix& who) {
+  MicrosecondTimer timer(__func__);
+  const size_t batch_size = errors.size();
+  timer.begin();
+  to.resize(batch_size);
+  for (size_t i = 0; i < batch_size; i++) {
+    MatrixUtils::gemm(
+      who, errors[i], 1.0, Matrix(), 0,
+      to[i],
+      MatrixUtils::GEMM_1_T);
+  }
+  timer.end();
+}
+
 void Neuron::back_propogate(
-  const float learning_rate, const Matrix &error) {
+  const float learning_rate, const std::vector<Matrix> &errors) {
   MicrosecondTimer timer(__func__), timer1;
   timer.begin();
   const size_t prev_num = num_prev();
@@ -162,18 +177,12 @@ void Neuron::back_propogate(
     ///derivate (Tk - Ok) * Oj, Oj is the input from jth neuron of last level
     cross = true;
   } else {
-    _activer->derivatives(_processing);
+    _activer->derivatives(_processings);
   }
 #define TEST_OPTIMIZER true
-  ACHECK(MatrixUtils::check(processing())) << "neuron_" << id() << ",_process "
-      << processing() << "," << id();
+  ACHECK(MatrixUtils::check(processing())) << "neuron_" << id();
   for (size_t i = 0; i < prev_num; i++) {
-    timer1.begin("gemm back");
-    MatrixUtils::gemm(
-        Who(i), error, 1.0, Matrix(), 0,
-        _prev_neurons_error.at(_prev_neurons_idx[i]),
-        MatrixUtils::GEMM_1_T);
-    timer1.end();
+    back_propogate_error(errors, _prev_neurons_error.at(_prev_neurons_idx[i]), Who(i));
     timer1.begin("update who");
     if (cross) {
 #if TEST_OPTIMIZER
@@ -378,6 +387,10 @@ void MulNetWork::read(const std::string &path) {
   constructor._netWork_ptr = this;
 
   cv::read(fs["neurons_num"], layer_nb, -1);
+  cv::read(fs["batch_size"], _batch_size, -1);
+  if (_batch_size <= 0) {
+    LOG(FATAL) << "batch size should at least 1(current " << _batch_size << ")";
+  }
   ACHECK(layer_nb > 0) << layer_nb;
   _neurons.reserve(layer_nb);
 

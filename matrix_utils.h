@@ -26,6 +26,7 @@ void CopyTo(const cv::Mat& src, OutputMatrix dst);
 void setZeros(InputOutputMatrix mat);
 void setTo(InputOutputMatrix mat, double v);
 bool check(const Matrix &matrix);
+bool check(const std::vector<Matrix> &matrixs);
 
 cv::Size MatrixSize(InputMatrix mat);
 

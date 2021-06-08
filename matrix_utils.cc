@@ -49,6 +49,16 @@ bool check(const Matrix &matrix) {
   return cv::checkRange(cv::Mat(matrix));
 }
 
+bool check(const std::vector<Matrix> &matrixs) {
+  for (auto &matrix : matrixs) {
+    if (!check(matrix)) {
+      LOG(ERROR) << "matrix:\n" << matrix;
+      return false;
+    }
+  }
+  return true;
+}
+
 cv::Size MatrixSize(InputMatrix mat) {
   return mat.size();
 }

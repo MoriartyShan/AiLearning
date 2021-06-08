@@ -15,8 +15,8 @@ private:
   const std::string _name;
 public:
   Activer(const std::string &name) : _name(name) {}
-  virtual void active(Matrix &mat) = 0;
-  virtual void derivatives(Matrix &mat) = 0;
+  virtual void active(std::vector<Matrix> &mat) = 0;
+  virtual void derivatives(std::vector<Matrix> &mat) = 0;
   const std::string &name() const {return _name;}
   static ActiverPtr create(const std::string &name);
 };

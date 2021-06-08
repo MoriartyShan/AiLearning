@@ -24,17 +24,18 @@ class Neuron{
 private:
   const std::string _active;
   ActiverPtr _activer;
+  std::vector<OptimizerPtr> _optimizers;
   const MulNetWork *_netWork_ptr;
 
   const Matrix *_in;//only useful for the first neuron
 
   std::vector<Matrix> _Whos;
-  std::vector<OptimizerPtr> _optimizers;
-  Matrix _processing, _tmp, _error;
+  std::vector<Matrix> _processings; //each batch result
+  Matrix _tmp, _error;
 //  const size_t _input_data_size;//input data size
   const int _output_data_size;//output data size
   const std::vector<int> _prev_neurons_idx;
-  std::map<int, Matrix> _prev_neurons_error; //neuron index, error
+  std::map<int, std::vector<Matrix>> _prev_neurons_error; //neuron index, error
 
   std::vector<int> _next_neurons_idx;
 
@@ -57,15 +58,19 @@ public:
   const std::vector<Matrix> &Whos() const {return _Whos;}
   const Matrix& Who(const int i) const {return _Whos[i];}
   size_t num_prev() const {return _prev_neurons_idx.size();}
-  const Matrix& processing() const {return _processing;}
+  const std::vector<Matrix>& processing() const {return _processings;}
 
   int id() const {return _id;}
   size_t output_data_size() const {return _output_data_size;}
   void query(const Matrix &in);
   void query();
   void back_propogate(
-      const float learning_rate, const Matrix &error);
+      const float learning_rate, const std::vector<Matrix> &errors);
   void back_propogate(const float learning_rate);
+
+  void back_propogate_error(
+      const std::vector<Matrix> &errors, std::vector<Matrix> &to, const Matrix& who);
+
   const std::string& type() const {
     return _active;
   };
@@ -74,7 +79,7 @@ public:
 
   bool is_next_neuron(const int i) const;
 
-  const Matrix &prev_error(const int i) const {
+  const std::vector<Matrix> &prev_error(const int i) const {
     return _prev_neurons_error.at(i);
   }
 
@@ -86,8 +91,9 @@ class MulNetWork {
 private:
   std::vector<NeuronPtr> _neurons;
   Matrix _last_error;
+  int _batch_size;
 public:
-  MulNetWork() {}
+  MulNetWork() : _batch_size(1){}
   MulNetWork(const std::vector<NeuronConstructor> &constructors);
   size_t neurons_num() const {return _neurons.size();}
 

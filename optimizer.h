@@ -14,7 +14,8 @@ using OptimizerPtr = std::shared_ptr<Optimizer>;
 
 class Optimizer {
 public:
-  virtual const Matrix& UpdateParameter(const Matrix &error, const Matrix &Ok, const Matrix &Ik) = 0;
+  virtual const Matrix& UpdateParameter(
+    const std::vector<Matrix> &error, const std::vector<Matrix>& Ok, const std::vector<Matrix>& Ik) = 0;
   static OptimizerPtr create(const std::string &name);
 };
 
