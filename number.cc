@@ -225,6 +225,11 @@ int main(int argc, char **argv) {
   //        --stderrthreshold=0
 #if true && defined(EIGEN_MODE)
   Eigen::initParallel();
+//  mkl_set_dynamic(false);
+//  mkl_set_num_threads(6);
+//  mkl_domain_set_num_threads(6);
+  LOG(ERROR) << "mkl thread " << mkl_get_max_threads();
+//  omp_set_nested(1);
   LOG(ERROR) << "set eigen parallel thread number " << Eigen::nbThreads();
 #endif
 

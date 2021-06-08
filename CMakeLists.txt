@@ -19,7 +19,7 @@ if(EIGEN_MODE)
     message(STATUS "matrix mode EIGEN_MODE")
 
     find_package(Eigen3 REQUIRED)
-    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fopenmp")
+#    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fopenmp")
     add_compile_definitions(EIGEN_USE_MKL_ALL ON)
     add_compile_definitions(EIGEN_MODE ON)
     add_compile_options(-m64)
@@ -30,8 +30,9 @@ if(EIGEN_MODE)
 
     set(LINK_LIBS
             /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.so
-            /opt/intel/mkl/lib/intel64/libmkl_sequential.so
+            /opt/intel/mkl/lib/intel64/libmkl_gnu_thread.so
             /opt/intel/mkl/lib/intel64/libmkl_core.so
+            /usr/lib/x86_64-linux-gnu/libgomp.so.1
             /opt/intel/mkl/lib/intel64/libmkl_scalapack_lp64.so
             /opt/intel/mkl/lib/intel64/libmkl_cdft_core.so
             /opt/intel/mkl/lib/intel64/libmkl_blacs_intelmpi_lp64.so
