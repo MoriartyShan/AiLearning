@@ -185,12 +185,18 @@ void derivativeTanh(InputOutputMatrix &matrix) {
 }
 
 void Softmax(InputOutputMatrix matrix) {
-  double max;
-  cv::cuda::minMax(matrix, nullptr, &max);
-  MatrixUtils::subtract(matrix, max, matrix);
-  cv::cuda::exp(matrix, matrix, cu_stream);
-  scalar sum = cv::cuda::sum(matrix)(0);
-  MatrixUtils::divide(matrix, sum, matrix);
+  const int cols = matrix.cols;
+#pragma omp parallel for
+  for (int i = 0; i < cols; i++) {
+    double max;
+    auto col = matrix.col(i);
+    cv::cuda::minMax(col, nullptr, &max);
+    MatrixUtils::subtract(col, max, col);
+    cv::cuda::exp(col, col, cu_stream);
+    scalar sum = cv::cuda::sum(col)(0);
+    MatrixUtils::divide(col, sum, col);
+  }
+
 }
 
 
@@ -437,12 +443,17 @@ void derivativeTanh(InputOutputMatrix &matrix) {
 }
 
 void Softmax(InputOutputMatrix matrix) {
-  double max;
-  cv::minMaxIdx(matrix, nullptr, &max);
-  matrix -= max;
-  cv::exp(matrix, matrix);
-  scalar sum = cv::sum(matrix)(0);
-  matrix /= sum;
+  const int cols = matrix.cols;
+#pragma omp parallel for
+  for (int i = 0; i < cols; i++) {
+    double max;
+    auto col = matrix.col(i);
+    cv::minMaxIdx(col, nullptr, &max);
+    col -= max;
+    cv::exp(col, col);
+    scalar sum = cv::sum(col)(0);
+    col /= sum;
+  }
 }
 
 #elif defined(EIGEN_MODE)
@@ -709,11 +720,18 @@ void Sigmoid(InputOutputMatrix matrix) {
 }
 
 void Softmax(InputOutputMatrix matrix) {
-  scalar max = matrix.maxCoeff();
-  matrix.array() -= max;
+  const int cols = matrix.cols();
+  auto max = matrix.colwise().maxCoeff();
+
+  for (int i = 0; i < cols; i++) {
+    matrix.col(i).array() -= max(i);
+  }
+
   matrix = matrix.array().exp();
-  scalar sum = matrix.sum();
-  matrix /= sum;
+  auto sum = matrix.colwise().sum();
+  for (int i = 0; i < cols; i++) {
+    matrix.col(i).array() /= sum(i);
+  }
 }
 
 #else

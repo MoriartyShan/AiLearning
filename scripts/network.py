@@ -21,5 +21,5 @@ model.add(tf.keras.layers.Dense(10, activation='sigmoid'))
 model.compile(optimizer='adam',
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
-model.fit(x_train_all, y_train_all, batch_size=1, epochs=100, validation_data=(x_valid, y_valid))
+model.fit(x_train, y_train, batch_size=1, epochs=100, validation_data=(x_valid, y_valid))
 model.evaluate(x_test, y_test)
